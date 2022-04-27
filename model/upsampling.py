@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 from torch.nn.functional import pad
+import numpy as np
 
 
 class FastUpConvolution(nn.Module):
@@ -17,8 +18,9 @@ class FastUpConvolution(nn.Module):
         self.conv4 = nn.Conv2d(in_channels, out_channels, (2, 2))
 
         self.batch_norm = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
 
-    # this code comes from here: https://github.com/iapatil/depth-semantic-fully-conv
+    # https://github.com/iapatil/depth-semantic-fully-conv
     def prepare_indices(self, before, row, col, after, dims):
         x0, x1, x2, x3 = np.meshgrid(before, row, col, after)
         x_0 = torch.from_numpy(x0.reshape([-1]))
@@ -29,16 +31,13 @@ class FastUpConvolution(nn.Module):
         linear_indices = x_3 + dims[3] * x_2 + 2 * dims[2] * dims[3] * x_0 * 2 * dims[1] + 2 * dims[2] * dims[3] * x_1
         return linear_indices
 
-    # interleaving operation
-    def interleave_helper(self, tensors, axis):
-        tensor_shape = list(tensors[0].size())
+    # # interleaving operation
+    # def interleave_helper(self, tensors, axis):
+    #     tensor_shape = list(tensors[0].size())
+    #     tensor_shape[axis + 1] *= 2
+    #     return torch.stack(tensors, axis + 1).view(tensor_shape)
 
-        # pretty much a tensorflow equivalent. prepend a [-1], stack the tensors, then reshape them
-
-        tensor_shape[axis + 1] *= 2
-        return torch.stack(tensors, axis + 1).view(tensor_shape)
-
-    # this code comes from here: https://github.com/iapatil/depth-semantic-fully-conv
+    # https://github.com/iapatil/depth-semantic-fully-conv
     def interleave_tensors(self, out1, out2, out3, out4, batch_size):
         out1 = out1.permute(0, 2, 3, 1)
         out2 = out2.permute(0, 2, 3, 1)
@@ -100,4 +99,5 @@ class FastUpConvolution(nn.Module):
         conved32 = self.conv3(pad(input_tensor, (1, 0, 1, 1)))
         conved22 = self.conv4(pad(input_tensor, (1, 0, 1, 0)))
         out_interleaved = self.interleave_tensors(conved33, conved23, conved32, conved22, input_tensor.shape[0])
-        return self.batch_norm(out_interleaved)
+        normed = self.batch_norm(out_interleaved)
+        return self.relu(normed)
