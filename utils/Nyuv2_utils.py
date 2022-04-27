@@ -103,9 +103,12 @@ def save(root_destination, images, depths, labels,type,index):
 
 
 
-
-mat_dir = "../datasets/Nyu_v2/nyu_depth_v2_labeled.mat"
-destination_root = "./datasets/Nyu_v2"
+if os.name=="nt":
+    mat_dir = "..\datasets\\Nyu_v2\\nyu_depth_v2_labeled.mat"
+    destination_root = "../datasets/Nyu_v2"
+else:
+    mat_dir = "../datasets/Nyu_v2/nyu_depth_v2_labeled.mat"
+    destination_root = "../datasets/Nyu_v2"
 images, depths, labels = extraction(mat_dir)
 images_train, images_test,depths_train ,depths_test,labels_train ,labels_test,split = split(0.8,0.2,images, depths, labels)
 
