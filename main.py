@@ -10,7 +10,7 @@ import torchvision
 import torchvision.transforms.functional as tf
 import pandas as pd
 import torch.nn as nn
-from models import resnet32,UNet
+#from models import resnet32,UNet
 from tqdm import tqdm
 import glob
 from augmentations import Compose, RandomHorizontallyFlip, RandomRotate, Scale
@@ -28,6 +28,7 @@ class NyuGenerator(torch.utils.data.Dataset):
         self.files = {}
         for split in ["train", "test"]:
             file_list= glob.glob(root + "/" + split + "/" + split + "_images/**")
+            #print(file_list)
             self.files[split] = file_list
 
 
@@ -67,7 +68,7 @@ class NyuGenerator(torch.utils.data.Dataset):
 
 
 
-root = "./datasets/Nyu_v2"
+root = "datasets/Nyu_v2"
 augmentations = Compose([Scale(512), RandomRotate(10)])
 nyu_train = NyuGenerator(root, is_transform=True, augmentations = augmentations)
 batch_size = 32
