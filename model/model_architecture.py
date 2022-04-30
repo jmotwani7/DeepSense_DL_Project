@@ -30,8 +30,8 @@ class Resnet50BasedModel(nn.Module):
                                    nn.BatchNorm2d(1024), FastUpConvolution(1024, 512),
                                    FastUpConvolution(512, 256),
                                    FastUpConvolution(256, 128),
-                                   FastUpConvolution(128, 64), nn
-                                   .Conv2d(64, 1, (3, 3), padding='same'),
+                                   FastUpConvolution(128, 64),
+                                   nn.Conv2d(64, 1, (3, 3), padding='same'),
                                    nn.ReLU())
         print(f'Trainable parameters for {self._get_name()} => {get_trainable_parameters(self.model)}')
 
