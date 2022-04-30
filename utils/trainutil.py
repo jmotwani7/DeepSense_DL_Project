@@ -91,6 +91,7 @@ def train(epoch, data_loader, model, optimizer, criterion):
                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                    'Prec @1 {top1.val:.4f} ({top1.avg:.4f})\t')
                   .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses, top1=acc))
+    return losses.avg
 
 
 def validate(epoch, val_loader, model, criterion):

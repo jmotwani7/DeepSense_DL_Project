@@ -1,7 +1,7 @@
 import os
 
 import numpy as np
-import cv2
+# import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 import torch
@@ -13,7 +13,7 @@ import torchvision
 import torchvision.transforms.functional as tf
 import pandas as pd
 import torch.nn as nn
-#from models import resnet32,UNet
+# from models import resnet32,UNet
 from tqdm import tqdm
 import time
 import glob
@@ -24,23 +24,21 @@ np.random.seed(100)
 
 
 class NyuGenerator(torch.utils.data.Dataset):
-    def __init__(self,root, split = "train", is_transform=False, img_size=(480,640), augmentations=None,img_norm=True):
-        self.root= root
+    def __init__(self, root, split="train", is_transform=False, img_size=(480, 640), augmentations=None, img_norm=True):
+        self.root = root
         self.is_transform = is_transform
         self.augmentations = augmentations
         self.img_size = img_size
         self.split = split
         self.files = {}
         for split in ["train", "test"]:
-            file_list= glob.glob(root + "/" + split + "/" + split + "_images/**")
-            #print(file_list)
+            file_list = glob.glob(root + "/" + split + "/" + split + "_images/**")
+            # print(file_list)
             self.files[split] = file_list
-
 
     def __len__(self):
         # return int(np.ceil(len(self.data) / self.batch_size))
         return len(self.files[self.split])
-
 
     def __getitem__(self, id):
         img_path = self.files[self.split][id]
@@ -49,23 +47,19 @@ class NyuGenerator(torch.utils.data.Dataset):
 
         img = np.asarray(Image.open(img_path))
 
-
         label = np.asarray(Image.open(label_path))
 
-
         if self.is_transform:
-            img,label = self.transform(img, label)
+            img, label = self.transform(img, label)
 
         if self.augmentations is not None:
             img, label = self.augmentations(img, label)
 
-
         return img, label
 
-
     def transform(self, img, label):
-        img = Image.fromarray(img).resize((480,640), Image.ANTIALIAS)
-        label = Image.fromarray(label).resize((480,640), Image.ANTIALIAS)
+        img = Image.fromarray(img).resize((480, 640), Image.ANTIALIAS)
+        label = Image.fromarray(label).resize((480, 640), Image.ANTIALIAS)
 
         return np.asarray(img), np.asarray(label)
 
@@ -101,6 +95,7 @@ def accuracy(output, target):
 
     return acc
 
+
 def adjust_learning_rate(optimizer, epoch, args):
     epoch += 1
     if epoch <= args.warmup:
@@ -127,11 +122,11 @@ def train(epoch, data_loader, model, optimizer, criterion):
             data = data.cuda()
             target = target.cuda()
 
-        print(data.shape,criterion)
+        print(data.shape, criterion)
         out = model(data)
-        loss = criterion.forward(out,target)
+        loss = criterion.forward(out, target)
 
-        #backpropagation
+        # backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -167,7 +162,7 @@ def validate(epoch, val_loader, model, criterion):
             target = target.cuda()
         with torch.no_grad():
             out = model(data)
-            loss = criterion(out,target)
+            loss = criterion(out, target)
 
         batch_acc = accuracy(out, target)
 
@@ -192,12 +187,6 @@ def validate(epoch, val_loader, model, criterion):
     print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
     return acc.avg, cm
 
-root = "datasets/Nyu_v2"
-augmentations = Compose([Scale(512), RandomRotate(10)])
-nyu_train = NyuGenerator(root, is_transform=True, augmentations = augmentations)
-batch_size = 32
-train_loader = Data.DataLoader(nyu_train, batch_size, num_workers=0)
-
 parser = argparse.ArgumentParser(description='DeepSense_DL_Project')
 parser.add_argument('--config', default='./config_resnet.yaml')
 
@@ -211,11 +200,9 @@ for key in config:
         setattr(args, k, v)
 model = baseModel.ResNet50Base()
 
-
-
 optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
-                                momentum=args.momentum,
-                                weight_decay=args.reg)
+                            momentum=args.momentum,
+                            weight_decay=args.reg)
 best = 0.0
 best_cm = None
 best_model = None
