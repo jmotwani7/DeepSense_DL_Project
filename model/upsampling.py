@@ -27,6 +27,11 @@ class FastUpConvolution(nn.Module):
         x_1 = torch.from_numpy(x1.reshape([-1]))
         x_2 = torch.from_numpy(x2.reshape([-1]))
         x_3 = torch.from_numpy(x3.reshape([-1]))
+        if torch.cuda.is_available():
+          x_0 = x_0.cuda()
+          x_1 = x_1.cuda()
+          x_2 = x_2.cuda()
+          x_3 = x_3.cuda()
 
         linear_indices = x_3 + dims[3] * x_2 + 2 * dims[2] * dims[3] * x_0 * 2 * dims[1] + 2 * dims[2] * dims[3] * x_1
         return linear_indices
@@ -74,6 +79,8 @@ class FastUpConvolution(nn.Module):
         size_ = A_linear_indices.size()[0] + B_linear_indices.size()[0] + C_linear_indices.size()[0] + D_linear_indices.size()[0]
 
         Y_flat = torch.FloatTensor(size_).zero_()
+        if torch.cuda.is_available():
+          Y_flat = Y_flat.cuda()
 
         Y_flat.scatter_(0, A_linear_indices.squeeze(), A_flat.data)
         Y_flat.scatter_(0, B_linear_indices.squeeze(), B_flat.data)

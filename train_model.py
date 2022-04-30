@@ -6,7 +6,8 @@ import yaml
 
 from model.lossFunction import inverseHuberLoss
 from model.model_architecture import Resnet50BasedModel
-from utils.trainutil import adjust_learning_rate, train, validate, get_NYU_trainloader
+from utils.trainutil import adjust_learning_rate, train, validate
+from utils.datasetutil import get_nyuv2_test_train_dataloaders
 
 
 def argparser():
@@ -20,19 +21,22 @@ def main():
     with open(args.config) as f:
         config = yaml.load(f, yaml.Loader)
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     for key in config:
         for k, v in config[key].items():
             setattr(args, k, v)
-    model = Resnet50BasedModel()
-
+    model = Resnet50BasedModel(device=device)
+    if torch.cuda.is_available():
+      model = model.cuda()
     optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
                                 momentum=args.momentum,
                                 weight_decay=args.reg)
-    best = 0.0
-    best_cm = None
+    best = float('inf')
+    # best_cm = None
     best_model = None
-    train_loader = get_NYU_trainloader('train')
-    test_loader = get_NYU_trainloader('test')
+    train_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat')
+
     criterion = inverseHuberLoss
     for epoch in range(args.epochs):
         adjust_learning_rate(optimizer, epoch, args)
@@ -41,17 +45,17 @@ def main():
         train(epoch, train_loader, model, optimizer, criterion)
 
         # validation loop
-        acc, cm = validate(epoch, test_loader, model, criterion)
+        loss = validate(epoch, test_loader, model, criterion)
 
-        if acc > best:
-            best = acc
-            best_cm = cm
+        if loss < best:
+            best = loss
+            # best_cm = cm
             best_model = copy.deepcopy(model)
 
-    print('Best Prec @1 Acccuracy: {:.4f}'.format(best))
-    per_cls_acc = best_cm.diag().detach().numpy().tolist()
-    for i, acc_i in enumerate(per_cls_acc):
-        print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
+    print('Best Prec @1 Loss: {:.4f}'.format(best))
+    # per_cls_acc = best_cm.diag().detach().numpy().tolist()
+    # for i, acc_i in enumerate(per_cls_acc):
+    #     print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
 
     if args.save_best:
         torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + '.pth')

@@ -6,8 +6,10 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader
+from torch.autograd import Variable
 
 from augmentations.augmentations import Compose, RandomRotate, Scale
+import torchvision.transforms as transforms
 
 
 class AverageMeter(object):
@@ -65,25 +67,25 @@ def train(epoch, data_loader, model, optimizer, criterion):
         start = time.time()
 
         if torch.cuda.is_available():
+            # tensor_dtype = torch.cuda.FloatTensor
+            # print('chanding dtype of input & target tensors')
             data = data.cuda()
             target = target.cuda()
 
         print(data.shape, criterion)
         out = model.forward(data)
-        loss = criterion.forward(out, target)
+        loss = criterion(out, target)
 
         # backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        batch_acc = accuracy(out, target)
-
         losses.update(loss, out.shape[0])
-        acc.update(batch_acc, out.shape[0])
+        # batch_acc = accuracy(out, target)
+        # acc.update(batch_acc, out.shape[0])
 
         iter_time.update(time.time() - start)
-        if idx % 10 == 0:
+        if idx % 1 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
                    'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -97,7 +99,7 @@ def validate(epoch, val_loader, model, criterion):
     acc = AverageMeter()
 
     num_class = 10
-    cm = torch.zeros(num_class, num_class)
+    # cm = torch.zeros(num_class, num_class)
     # evaluation loop
     model.eval()
     for idx, (data, target) in enumerate(val_loader):
@@ -110,73 +112,25 @@ def validate(epoch, val_loader, model, criterion):
             out = model(data)
             loss = criterion(out, target)
 
-        batch_acc = accuracy(out, target)
+        # batch_acc = accuracy(out, target)
 
         # update confusion matrix
         _, preds = torch.max(out, 1)
-        for t, p in zip(target.view(-1), preds.view(-1)):
-            cm[t.long(), p.long()] += 1
+        # for t, p in zip(target.view(-1), preds.view(-1)):
+        #     cm[t.long(), p.long()] += 1
 
         losses.update(loss, out.shape[0])
-        acc.update(batch_acc, out.shape[0])
+        # acc.update(batch_acc, out.shape[0])
 
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
                    'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t')
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses, top1=acc))
-    cm = cm / cm.sum(1)
-    per_cls_acc = cm.diag().detach().numpy().tolist()
-    for i, acc_i in enumerate(per_cls_acc):
-        print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
+    # cm = cm / cm.sum(1)
+    # per_cls_acc = cm.diag().detach().numpy().tolist()
+    # for i, acc_i in enumerate(per_cls_acc):
+    #     print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
 
-    print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
-    return acc.avg, cm
-
-
-class NyuGenerator(torch.utils.data.Dataset):
-    def __init__(self, root, split="train", is_transform=False, img_size=(480, 640), augmentations=None, img_norm=True):
-        self.root = root
-        self.is_transform = is_transform
-        self.augmentations = augmentations
-        self.img_size = img_size
-        self.split = split
-        self.files = {}
-        for split in ["train", "test"]:
-            file_list = glob.glob(root + "/" + split + "/" + split + "_images/**")
-            # print(file_list)
-            self.files[split] = file_list
-
-    def __len__(self):
-        # return int(np.ceil(len(self.data) / self.batch_size))
-        return len(self.files[self.split])
-
-    def __getitem__(self, id):
-        img_path = self.files[self.split][id]
-        img_name = os.path.split(self.files[self.split][0])[-1][:-4]
-        label_path = self.root + "/" + self.split + "/" + self.split + "_labels/" + img_name + ".png"
-
-        img = np.asarray(Image.open(img_path))
-
-        label = np.asarray(Image.open(label_path))
-
-        if self.is_transform:
-            img, label = self.transform(img, label)
-
-        if self.augmentations is not None:
-            img, label = self.augmentations(img, label)
-
-        return img, label
-
-    def transform(self, img, label):
-        img = Image.fromarray(img).resize((480, 640), Image.ANTIALIAS)
-        label = Image.fromarray(label).resize((480, 640), Image.ANTIALIAS)
-
-        return np.asarray(img), np.asarray(label)
-
-
-def get_NYU_trainloader(split='train', batch_size=28, shuffle=True):
-    root = "datasets/Nyu_v2"
-    augmentations = Compose([Scale(512), RandomRotate(10)])
-    nyu_train = NyuGenerator(root, split=split, is_transform=True, augmentations=augmentations)
-    return DataLoader(nyu_train, batch_size)
+    # print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
+    return losses.avg

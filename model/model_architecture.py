@@ -15,10 +15,11 @@ class Resnet50BasedModel(nn.Module):
         Resnet Base Model ( without FC layers ) , followed by UnConvolutionLayers
     """
 
-    def __init__(self, freeze_decoder_weights=False):
+    def __init__(self, device='cpu', freeze_decoder_weights=False):
         super(Resnet50BasedModel, self).__init__()
         resnet50 = torchvision.models.resnet50(pretrained=True)
         self.freeze_decoder_weights = freeze_decoder_weights
+        self.device = device
 
         if self.freeze_decoder_weights:
             for param in resnet50.parameters():
@@ -31,11 +32,14 @@ class Resnet50BasedModel(nn.Module):
                                    FastUpConvolution(512, 256),
                                    FastUpConvolution(256, 128),
                                    FastUpConvolution(128, 64),
-                                   nn.Conv2d(64, 1, (3, 3), padding='same'),
-                                   nn.ReLU())
+                                   nn.Dropout2d(),
+                                   nn.Conv2d(64, 1, 3, padding=1, padding_mode='zeros'),
+                                   nn.ReLU(),
+                                   nn.Upsample(size=(228, 304), mode='bilinear'))
         print(f'Trainable parameters for {self._get_name()} => {get_trainable_parameters(self.model)}')
 
     def forward(self, input_tensor):
+        # input_tensor.to(self.device)
         """Runs a forward pass over the Model"""
         output_tensor = self.model(input_tensor)
         return output_tensor
