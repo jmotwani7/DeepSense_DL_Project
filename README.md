@@ -1,6 +1,9 @@
 # DeepSense_DL_Project
 Deep Learning Project
 
+# Training Command 
+python train_model.py --config configs/config_alexnet.yaml
+Model and parameters defined in config file will be used for training pipeline. 
 
 # Data pipeline
 Download Nyuv2 data from https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html just the small labeled pairs of aligned RGB and depth images (1449). You will get a mat file. Run Nyuv2_utils.py in the main branch with specific directory.
