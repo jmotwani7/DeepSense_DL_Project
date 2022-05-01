@@ -1,16 +1,15 @@
 import argparse
 import copy
+import pickle
+from pathlib import Path
 
 import torch
 import yaml
 
 from model.lossFunction import inverseHuberLoss
 from model.model_architecture import Resnet50BasedModel
-from utils.trainutil import adjust_learning_rate, train, validate
 from utils.datasetutil import get_nyuv2_test_train_dataloaders, load_test_train_ids
-import pickle
-from pathlib import Path
-import os
+from utils.trainutil import adjust_learning_rate, train, validate
 
 
 def argparser():
@@ -39,9 +38,10 @@ def main():
     model = Resnet50BasedModel(device=device)
     if torch.cuda.is_available():
         model = model.cuda()
-    optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
-                                momentum=args.momentum,
-                                weight_decay=args.reg)
+    # optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
+    #                             momentum=args.momentum,
+    #                             weight_decay=args.reg)
+    optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
     best = float('inf')
     # best_cm = None
     best_model = None

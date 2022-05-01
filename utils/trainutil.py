@@ -63,7 +63,6 @@ def train(epoch, data_loader, model, optimizer, criterion):
             data = data.cuda()
             target = target.cuda()
 
-        print(data.shape, criterion)
         out = model.forward(data)
         loss = criterion(out, target)
 
