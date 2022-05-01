@@ -7,6 +7,8 @@ Train:
   steps: [40, 60, 80]
   warmup: 2
   momentum: 0.9
+  weights_path: na
+  model_class: Resnet50BasedUpProjModel # other possible values Resnet50BasedModel, Resnet50BasedUpProjModel
 
 network:
   model: resnetv2

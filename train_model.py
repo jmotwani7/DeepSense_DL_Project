@@ -6,9 +6,9 @@ import yaml
 from torch.utils.tensorboard import SummaryWriter
 
 from model.lossFunction import inverseHuberLoss
-from model.model_architecture import Resnet50BasedModel, AlexNetBasedModel
+from model.model_architecture import Resnet50BasedModel, Resnet50BasedUpProjModel, AlexNetBasedModel
 from utils.datasetutil import get_nyuv2_test_train_dataloaders, load_test_train_ids
-from utils.trainutil import adjust_learning_rate, train, validate, save_json
+from utils.trainutil import adjust_learning_rate, train, validate, save_json, load_weights
 
 
 def argparser():
@@ -21,28 +21,37 @@ def main():
     args = argparser().parse_args()
     with open(args.config) as f:
         config = yaml.load(f, yaml.Loader)
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     for key in config:
         for k, v in config[key].items():
             setattr(args, k, v)
+
     if args.model == "AlexNet-upprojection":
         model = AlexNetBasedModel(device=device)
-    else:
+    elif args.model_class == 'Resnet50BasedModel':
         model = Resnet50BasedModel(device=device)
+    elif args.model_class == 'Resnet50BasedUpProjModel':
+        model = Resnet50BasedUpProjModel(device=device)
+    else:
+        raise ValueError(f'Model class specified in the config args is not implemented => {args.model_class}')
+
+    load_weights(model, args.weights_path)
+
     writer = SummaryWriter(f'runs/{args.model.lower()}')
     if torch.cuda.is_available():
         model = model.cuda()
-    # optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
-    #                             momentum=args.momentum,
-    #                             weight_decay=args.reg)
-    optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+    optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
+                                momentum=args.momentum,
+                                weight_decay=args.reg)
+    # optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+    criterion = torch.nn.MSELoss()  # inverseHuberLoss
+    if torch.cuda.is_available():
+        criterion = criterion.cuda()
     best = float('inf')
     train_ids, val_ids, test_ids = load_test_train_ids('datasets/Nyu_v2/train_val_test_ids.json')
     train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size)
 
-    criterion = inverseHuberLoss
     train_losses = []
     val_losses = []
     learning_rates = []
