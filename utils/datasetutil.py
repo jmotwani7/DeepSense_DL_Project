@@ -1,12 +1,12 @@
+import json
+import random
+from pathlib import Path
+
+import h5py
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 
-import h5py
 from augmentations import augmentations_new
-import random
-import json
-from pathlib import Path
-from augmentations.augmentations import Compose, RandomRotate, Scale
 
 
 # class NyuGenerator(torch.utils.data.Dataset):
