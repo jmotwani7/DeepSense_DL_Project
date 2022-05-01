@@ -4,6 +4,8 @@ from torch.utils.data import DataLoader, Dataset
 import h5py
 import flow_transforms
 import random
+import json
+from pathlib import Path
 from augmentations.augmentations import Compose, RandomRotate, Scale
 
 
@@ -98,10 +100,29 @@ class NyuDatasetLoader(Dataset):
 #     return DataLoader(nyu_train, batch_size)
 
 
-def get_nyuv2_test_train_dataloaders(dataset_path, batch_size=32, last_id=1448):
+def load_test_train_ids(file_path):
+    with open(file_path, 'r') as f:
+        ids = json.loads(f.read())
+        return ids['train'], ids['val'], ids['test']
+
+
+def save_test_train_ids(file_path, train_percent=0.8, last_id=1448):
+    if not Path(file_path).parent.is_dir():
+        Path(file_path).parent.mkdir(exist_ok=True)
     all_ids = [i for i in range(last_id)]
-    train_ids = random.sample(all_ids, int(last_id * 0.8))
-    test_ids = [i for i in all_ids if i not in train_ids]
-    train_ds = NyuDatasetLoader(dataset_path, train_ids)
-    test_ds = NyuDatasetLoader(dataset_path, test_ids)
-    return DataLoader(train_ds, batch_size), DataLoader(test_ds, batch_size)
+    train_ids = random.sample(all_ids, int(last_id * train_percent))
+
+    test_val_ids = [i for i in all_ids if i not in train_ids]
+
+    test_ids = random.sample(test_val_ids, len(test_val_ids) // 2)
+    val_ids = [i for i in test_val_ids if i not in test_ids]
+
+    ids_dict = {'train': train_ids, 'val': val_ids, 'test': test_ids}
+    with open(file_path, 'w') as f:
+        f.write(json.dumps(ids_dict))
+
+
+def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=32):
+    return DataLoader(NyuDatasetLoader(dataset_path, train_ids), batch_size, shuffle=True), \
+           DataLoader(NyuDatasetLoader(dataset_path, val_ids), batch_size, shuffle=True), \
+           DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
