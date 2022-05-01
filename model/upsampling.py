@@ -80,7 +80,7 @@ class FastUpConvolution(nn.Module):
 
         Y_flat = torch.FloatTensor(size_).zero_()
         if torch.cuda.is_available():
-          print("running on gpu")
+          #print("running on gpu")
           Y_flat = Y_flat.cuda()
 
         Y_flat.scatter_(0, A_linear_indices.squeeze(), A_flat.data)
