@@ -1,15 +1,6 @@
-import glob
-import os
 import time
 
-import numpy as np
 import torch
-from PIL import Image
-from torch.utils.data import DataLoader
-from torch.autograd import Variable
-
-from augmentations.augmentations import Compose, RandomRotate, Scale
-import torchvision.transforms as transforms
 
 
 class AverageMeter(object):
@@ -33,16 +24,16 @@ class AverageMeter(object):
 
 def adjust_learning_rate(optimizer, epoch, args):
     epoch += 1
+    lr = args.learning_rate
     if epoch <= args.warmup:
         lr = args.learning_rate * epoch / args.warmup
-    elif epoch > args.steps[1]:
-        lr = args.learning_rate * 0.01
-    elif epoch > args.steps[0]:
-        lr = args.learning_rate * 0.1
-    else:
-        lr = args.learning_rate
+    for idx, step in enumerate(reversed(args.steps)):
+        if epoch > step:
+            loss_multiplier = 0.1 ** (len(args.steps) - idx)
+            lr = args.learning_rate * loss_multiplier
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+    return lr
 
 
 def accuracy(output, target):
@@ -85,11 +76,10 @@ def train(epoch, data_loader, model, optimizer, criterion):
         # acc.update(batch_acc, out.shape[0])
 
         iter_time.update(time.time() - start)
-        if idx % 1 == 0:
+        if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
                    'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
-                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                   'Prec @1 {top1.val:.4f} ({top1.avg:.4f})\t')
+                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t')
                   .format(epoch, idx, len(data_loader), iter_time=iter_time, loss=losses, top1=acc))
     return losses.avg
 
@@ -116,7 +106,7 @@ def validate(epoch, val_loader, model, criterion):
         # batch_acc = accuracy(out, target)
 
         # update confusion matrix
-        _, preds = torch.max(out, 1)
+        # _, preds = torch.max(out, 1)
         # for t, p in zip(target.view(-1), preds.view(-1)):
         #     cm[t.long(), p.long()] += 1
 
@@ -126,7 +116,8 @@ def validate(epoch, val_loader, model, criterion):
         iter_time.update(time.time() - start)
         if idx % 10 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
-                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t')
+                   'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
+                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t')
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses, top1=acc))
     # cm = cm / cm.sum(1)
     # per_cls_acc = cm.diag().detach().numpy().tolist()

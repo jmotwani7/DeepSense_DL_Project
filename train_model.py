@@ -22,7 +22,7 @@ def argparser():
 def save_pickle(data, file_path):
     if not Path(file_path).parent.is_dir():
         Path(file_path).parent.mkdir(exist_ok=True)
-    with open(file_path, 'w') as f:
+    with open(file_path, 'wb') as f:
         pickle.dump(data, f)
 
 
@@ -51,18 +51,23 @@ def main():
     criterion = inverseHuberLoss
     train_losses = []
     val_losses = []
+    learning_rates = []
     for epoch in range(args.epochs):
-        adjust_learning_rate(optimizer, epoch, args)
+        lr = adjust_learning_rate(optimizer, epoch, args)
+        print(f'Learning Rate for EPOCH {epoch} => {lr}')
+        learning_rates.append(lr)
 
         # train loop
         print(f'********* Training Started for epoch {epoch} *********')
         train_loss = train(epoch, train_loader, model, optimizer, criterion)
         train_losses.append(train_loss)
+        print(f'Training loss for the EPOCH {epoch} ==> {train_loss:.4f}')
 
         # validation loop
         print(f'********* Validation Started for epoch {epoch} *********')
         loss = validate(epoch, test_loader, model, criterion)
         val_losses.append(loss)
+        print(f'Validation loss for the EPOCH {epoch} ==> {loss:.4f}')
 
         if loss < best:
             best = loss
@@ -70,13 +75,11 @@ def main():
             best_model = copy.deepcopy(model)
             if args.save_best:
                 torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + f'-{epoch}.pth')
-        save_pickle(train_losses, 'metrics/train_berHu_default.pkl')
-        save_pickle(val_losses, 'metrics/val_berHu_default.pkl')
+        save_pickle(train_losses, f'metrics/train_{args.model.lower()}_berHu_default.pkl')
+        save_pickle(val_losses, f'metrics/val_{args.model.lower()}_berHu_default.pkl')
+        save_pickle(learning_rates, f'metrics/learning_rate_{args.model.lower()}_default.pkl')
 
-    print('Best Prec @1 Loss: {:.4f}'.format(best))
-    # per_cls_acc = best_cm.diag().detach().numpy().tolist()
-    # for i, acc_i in enumerate(per_cls_acc):
-    #     print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
+    print('Best Loss: {:.4f}'.format(best))
 
 
 if __name__ == '__main__':
