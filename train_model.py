@@ -50,7 +50,6 @@ def main():
     train_ids, val_ids, test_ids = load_test_train_ids('datasets/Nyu_v2/train_val_test_ids.json')
     train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size)
 
-    criterion = inverseHuberLoss
     train_losses = []
     val_losses = []
     learning_rates = []
