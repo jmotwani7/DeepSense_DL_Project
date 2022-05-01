@@ -51,13 +51,13 @@ def main():
         # train loop
         print(f'********* Training Started for epoch {epoch} *********')
         train_loss = train(epoch, train_loader, model, optimizer, criterion, writer)
-        train_losses.append(train_loss)
+        train_losses.append(train_loss.item())
         print(f'Training loss for the EPOCH {epoch} ==> {train_loss:.4f}')
 
         # validation loop
         print(f'********* Validation Started for epoch {epoch} *********')
         loss = validate(epoch, val_loader, model, criterion, writer)
-        val_losses.append(loss)
+        val_losses.append(loss.item())
         print(f'Validation loss for the EPOCH {epoch} ==> {loss:.4f}')
 
         if loss < best:
@@ -68,10 +68,10 @@ def main():
 
         writer.add_scalars('Training vs. Validation Loss',
                            {'Training': train_loss, 'Validation': loss},
-                           epoch)
-        save_json(train_losses, f'metrics/train_{args.model.lower()}_berHu_default.pkl')
-        save_json(val_losses, f'metrics/val_{args.model.lower()}_berHu_default.pkl')
-        save_json(learning_rates, f'metrics/learning_rate_{args.model.lower()}_default.pkl')
+                           global_step=epoch)
+        save_json(train_losses, f'metrics/train_{args.model.lower()}_berHu_default.json')
+        save_json(val_losses, f'metrics/val_{args.model.lower()}_berHu_default.json')
+        save_json(learning_rates, f'metrics/learning_rate_{args.model.lower()}_default.json')
 
     print('Best Loss: {:.4f}'.format(best))
 
