@@ -53,18 +53,18 @@ class FastUpConvolution(nn.Module):
         dim1 = dims[1] * 2
         dim2 = dims[2] * 2
 
-        A_row_indices = range(0, dim1, 2)
+        A_row_indices = np.arange(0, dim1, 2,dtype=np.int64)
 
-        A_col_indices = range(0, dim2, 2)
-        B_row_indices = range(1, dim1, 2)
-        B_col_indices = range(0, dim2, 2)
-        C_row_indices = range(0, dim1, 2)
-        C_col_indices = range(1, dim2, 2)
-        D_row_indices = range(1, dim1, 2)
-        D_col_indices = range(1, dim2, 2)
+        A_col_indices = np.arange(0, dim2, 2,dtype=np.int64)
+        B_row_indices = np.arange(1, dim1, 2,dtype=np.int64)
+        B_col_indices = np.arange(0, dim2, 2,dtype=np.int64)
+        C_row_indices = np.arange(0, dim1, 2,dtype=np.int64)
+        C_col_indices = np.arange(1, dim2, 2,dtype=np.int64)
+        D_row_indices = np.arange(1, dim1, 2,dtype=np.int64)
+        D_col_indices = np.arange(1, dim2, 2,dtype=np.int64)
 
-        all_indices_before = range(int(batch_size))
-        all_indices_after = range(dims[3])
+        all_indices_before = np.arange(int(batch_size),dtype=np.int64)
+        all_indices_after = np.arange(int(dims[3]),dtype=np.int64)
 
         A_linear_indices = self.prepare_indices(all_indices_before, A_row_indices, A_col_indices, all_indices_after, dims)
         B_linear_indices = self.prepare_indices(all_indices_before, B_row_indices, B_col_indices, all_indices_after, dims)
@@ -80,6 +80,7 @@ class FastUpConvolution(nn.Module):
 
         Y_flat = torch.FloatTensor(size_).zero_()
         if torch.cuda.is_available():
+          print("running on gpu")
           Y_flat = Y_flat.cuda()
 
         Y_flat.scatter_(0, A_linear_indices.squeeze(), A_flat.data)

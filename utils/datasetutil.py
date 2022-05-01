@@ -2,7 +2,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 
 import h5py
-import flow_transforms
+from augmentations import augmentations_new
 import random
 import json
 from pathlib import Path
@@ -72,14 +72,14 @@ class NyuDatasetLoader(Dataset):
 
         # image.save('img1.png')
 
-        # input_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # input_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        input_transform = transforms.Compose([flow_transforms.Scale(228),
-                                              flow_transforms.ArrayToTensor()])
-        # target_depth_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # target_depth_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        target_depth_transform = transforms.Compose([flow_transforms.Scale_Single(228),
-                                                     flow_transforms.ArrayToTensor()])
+        # input_transform = transforms.Compose([augmentations_new.Scale(228)])
+        # input_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
+        input_transform = transforms.Compose([augmentations_new.Scale(228),
+                                              augmentations_new.ArrayToTensor()])
+        # target_depth_transform = transforms.Compose([augmentations_new.Scale(228)])
+        # target_depth_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
+        target_depth_transform = transforms.Compose([augmentations_new.Scale_Single(228),
+                                                     augmentations_new.ArrayToTensor()])
 
         img = input_transform(img)
         dpt = target_depth_transform(dpt)

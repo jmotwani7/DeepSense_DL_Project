@@ -14,9 +14,7 @@ def inverseHuberLoss(out, target):
     -------
 
     """
-    # diff = torch.abs(out - target)
-    # Coff = 0.2 * torch.max(diff).item()
-    # return torch.mean(torch.where(diff < Coff, diff, (diff *diff + Coff ^ 2) / (2 * Coff)))
-    absdiff = torch.abs(out - target)
-    C = 0.2 * torch.max(absdiff).item()
-    return torch.mean(torch.where(absdiff < C, absdiff, (absdiff * absdiff + C * C) / (2 * C)))
+    diff = torch.abs(out - target)
+    Coff = 0.2 * torch.max(diff).item()
+    return torch.mean(torch.where(diff < Coff, diff, (diff *diff + Coff *Coff) / (2 * Coff)))
+
