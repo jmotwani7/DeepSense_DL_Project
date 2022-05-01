@@ -3,6 +3,7 @@ Deep Learning Project
 
 # Training Command 
 python train_model.py --config configs/config_alexnet.yaml
+
 Model and parameters defined in config file will be used for training pipeline. 
 
 # Data pipeline
