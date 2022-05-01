@@ -122,6 +122,14 @@ def validate(epoch, val_loader, model, criterion, writer: SummaryWriter):
     return losses.avg
 
 
+def load_weights(model, weights_path):
+    if Path(weights_path).is_file():
+        model.load_state_dict(torch.load(weights_path))
+        model.eval()
+    else:
+        print(f"Weights couldn't be loade at path {weights_path}")
+
+
 def save_pickle(data, file_path):
     if not Path(file_path).parent.is_dir():
         Path(file_path).parent.mkdir(exist_ok=True)

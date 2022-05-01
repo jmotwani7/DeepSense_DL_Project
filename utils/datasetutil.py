@@ -2,7 +2,6 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 import torch
 import h5py
-import flow_transforms
 import random
 import json
 from pathlib import Path
@@ -10,56 +9,42 @@ import glob
 import numpy as np
 from PIL import Image
 import os
+from augmentations import augmentations_new
+
 
 class CityScapeGenerator(torch.utils.data.Dataset):
-    def __init__(self,root, split = "train"):
-        self.root= root
+    def __init__(self, root, split="train"):
+        self.root = root
         self.split = split
         self.files = {}
         for split in ["train", "val"]:
-            file_list= glob.glob(root + "/" + split + "/" + split + "_image/**")
+            file_list = glob.glob(root + "/" + split + "/" + split + "_image/**")
             self.files[split] = file_list
-
 
     def __len__(self):
         # return int(np.ceil(len(self.data) / self.batch_size))
         return len(self.files[self.split])
 
-
     def __getitem__(self, id):
         img_path = self.files[self.split][id]
         img_name = os.path.split(self.files[self.split][0])[-1][:-4]
         dpt_path = self.root + "/" + self.split + "/" + self.split + "_depth/" + img_name + ".jpg"
-
         img = np.asarray(Image.open(img_path))
-
-
         dpt = np.asarray(Image.open(dpt_path))
+        input_transform = transforms.Compose([augmentations_new.Scale(228),
+                                              augmentations_new.ArrayToTensor()])
 
+        target_depth_transform = transforms.Compose([augmentations_new.Scale_Single(228),
+                                                     augmentations_new.ArrayToTensor()])
 
-        # if self.is_transform:
-        #     img,label = self.transform(img, label)
-        #
-        # if self.augmentations is not None:
-        #     img, label = self.augmentations(img, label)
-
-        input_transform = transforms.Compose([flow_transforms.Scale(228),
-                                              flow_transforms.ArrayToTensor()])
-        # target_depth_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # target_depth_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        target_depth_transform = transforms.Compose([flow_transforms.Scale_Single(228),
-                                                     flow_transforms.ArrayToTensor()])
-
-        img = input_transform(img)
+        img = input_transform(img) / 255.
         dpt = target_depth_transform(dpt)
 
-
-        return img.transpose((2,1,0)), dpt
-
+        return img.transpose((2, 1, 0)), dpt
 
     def transform(self, img, label):
-        img = Image.fromarray(img).resize((480,640), Image.ANTIALIAS)
-        label = Image.fromarray(label).resize((480,640), Image.ANTIALIAS)
+        img = Image.fromarray(img).resize((480, 640), Image.ANTIALIAS)
+        label = Image.fromarray(label).resize((480, 640), Image.ANTIALIAS)
 
         return np.asarray(img), np.asarray(label)
 
@@ -77,41 +62,19 @@ class NyuDatasetLoader(Dataset):
     def __getitem__(self, index):
         img_idx = self.lists[index]
         img = self.imgs[img_idx].transpose(2, 1, 0)
-        # img = self.imgs[img_idx]
         dpt = self.dpts[img_idx].transpose(1, 0)
-        # dpt = self.dpts[img_idx]
+        input_transform = transforms.Compose([augmentations_new.Scale(228),
+                                              augmentations_new.ArrayToTensor()])
+        target_depth_transform = transforms.Compose([augmentations_new.Scale_Single(228),
+                                                     augmentations_new.ArrayToTensor()])
 
-        # image = Image.fromarray(np.uint8(img))
-        # depth = Image.fromarray(np.uint8(dpt))
-
-        # image.save('img1.png')
-
-        # input_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # input_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        input_transform = transforms.Compose([flow_transforms.Scale(228),
-                                              flow_transforms.ArrayToTensor()])
-        # target_depth_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # target_depth_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        target_depth_transform = transforms.Compose([flow_transforms.Scale_Single(228),
-                                                     flow_transforms.ArrayToTensor()])
-
-        img = input_transform(img)
+        img = input_transform(img) / 255.
         dpt = target_depth_transform(dpt)
-
-        # image = Image.fromarray(np.uint8(img))
-        # image.save('img2.png')
 
         return img, dpt
 
     def __len__(self):
         return len(self.lists)
-
-
-# def get_NYU_trainloader(dataset_root, split='train', batch_size=28, shuffle=True):
-#     # root = "datasets/Nyu_v2"
-#     augmentations = Compose([Scale(512), RandomRotate(10)])
-#     nyu_train = NyuDatasetLoader(dataset_root, split=split, is_transform=True, augmentations=augmentations)
-#     return DataLoader(nyu_train, batch_size)
 
 
 def load_test_train_ids(file_path):
@@ -141,8 +104,9 @@ def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids,
            DataLoader(NyuDatasetLoader(dataset_path, val_ids), batch_size, shuffle=True), \
            DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
 
+
 def get_cityscape_val_train_dataloader(dataset_path, batch_size=32):
-    return DataLoader(CityScapeGenerator(dataset_path, "train"), batch_size),\
-            DataLoader(CityScapeGenerator(dataset_path, "val"), batch_size)
+    return DataLoader(CityScapeGenerator(dataset_path, "train"), batch_size), \
+           DataLoader(CityScapeGenerator(dataset_path, "val"), batch_size)
 
 # train_loader, val_loader = get_cityscape_val_train_dataloader("../datasets/cityscapes")
