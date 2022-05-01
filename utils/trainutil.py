@@ -1,6 +1,11 @@
+import json
+import pickle
 import time
+from pathlib import Path
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
+from utils.metrics_util import write_image_grid
 
 
 class AverageMeter(object):
@@ -49,7 +54,7 @@ def accuracy(output, target):
     return acc
 
 
-def train(epoch, data_loader, model, optimizer, criterion):
+def train(epoch, data_loader, model, optimizer, criterion, writer: SummaryWriter):
     iter_time = AverageMeter()
     losses = AverageMeter()
     acc = AverageMeter()
@@ -65,6 +70,9 @@ def train(epoch, data_loader, model, optimizer, criterion):
 
         out = model.forward(data)
         loss = criterion(out, target)
+
+        if idx == 0:
+            write_image_grid(writer, data, target, out, step=epoch, sample='Training')
 
         # backpropagation
         optimizer.zero_grad()
@@ -83,13 +91,11 @@ def train(epoch, data_loader, model, optimizer, criterion):
     return losses.avg
 
 
-def validate(epoch, val_loader, model, criterion):
+def validate(epoch, val_loader, model, criterion, writer: SummaryWriter):
     iter_time = AverageMeter()
     losses = AverageMeter()
     acc = AverageMeter()
 
-    num_class = 10
-    # cm = torch.zeros(num_class, num_class)
     # evaluation loop
     model.eval()
     for idx, (data, target) in enumerate(val_loader):
@@ -102,26 +108,34 @@ def validate(epoch, val_loader, model, criterion):
             out = model(data)
             loss = criterion(out, target)
 
-        # batch_acc = accuracy(out, target)
-
-        # update confusion matrix
-        # _, preds = torch.max(out, 1)
-        # for t, p in zip(target.view(-1), preds.view(-1)):
-        #     cm[t.long(), p.long()] += 1
-
+            if idx == 0:
+                write_image_grid(writer, data, target, out, step=epoch, sample='Validation')
         losses.update(loss, out.shape[0])
         # acc.update(batch_acc, out.shape[0])
 
         iter_time.update(time.time() - start)
-        if idx % 10 == 0:
+        if idx % 5 == 0:
             print(('Epoch: [{0}][{1}/{2}]\t'
                    'Time {iter_time.val:.3f} ({iter_time.avg:.3f})\t'
                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t')
                   .format(epoch, idx, len(val_loader), iter_time=iter_time, loss=losses, top1=acc))
-    # cm = cm / cm.sum(1)
-    # per_cls_acc = cm.diag().detach().numpy().tolist()
-    # for i, acc_i in enumerate(per_cls_acc):
-    #     print("Accuracy of Class {}: {:.4f}".format(i, acc_i))
-
-    # print("* Prec @1: {top1.avg:.4f}".format(top1=acc))
     return losses.avg
+
+
+def save_pickle(data, file_path):
+    if not Path(file_path).parent.is_dir():
+        Path(file_path).parent.mkdir(exist_ok=True)
+    with open(file_path, 'wb') as f:
+        pickle.dump(data, f)
+
+
+def save_json(json_data, file_path):
+    if not Path(file_path).parent.is_dir():
+        Path(file_path).parent.mkdir(exist_ok=True)
+    with open(file_path, 'w') as f:
+        f.write(json.dumps(json_data, indent=4))
+
+
+def load_json(file_path):
+    with open(file_path, 'r') as f:
+        json.loads(f.read())
