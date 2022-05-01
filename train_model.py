@@ -6,7 +6,7 @@ import yaml
 from torch.utils.tensorboard import SummaryWriter
 
 from model.lossFunction import inverseHuberLoss
-from model.model_architecture import Resnet50BasedModel
+from model.model_architecture import Resnet50BasedModel, AlexNetBasedModel
 from utils.datasetutil import get_nyuv2_test_train_dataloaders, load_test_train_ids
 from utils.trainutil import adjust_learning_rate, train, validate, save_json
 
@@ -27,7 +27,10 @@ def main():
     for key in config:
         for k, v in config[key].items():
             setattr(args, k, v)
-    model = Resnet50BasedModel(device=device)
+    if args.model == "AlexNet-upprojection":
+        model = AlexNetBasedModel(device=device)
+    else:
+        model = Resnet50BasedModel(device=device)
     writer = SummaryWriter(f'runs/{args.model.lower()}')
     if torch.cuda.is_available():
         model = model.cuda()

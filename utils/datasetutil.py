@@ -2,7 +2,6 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 import torch
 import h5py
-import flow_transforms
 import random
 import json
 from pathlib import Path
@@ -10,6 +9,7 @@ import glob
 import numpy as np
 from PIL import Image
 import os
+from augmentations import augmentations_new
 
 class CityScapeGenerator(torch.utils.data.Dataset):
     def __init__(self,root, split = "train"):
@@ -43,12 +43,12 @@ class CityScapeGenerator(torch.utils.data.Dataset):
         # if self.augmentations is not None:
         #     img, label = self.augmentations(img, label)
 
-        input_transform = transforms.Compose([flow_transforms.Scale(228),
-                                              flow_transforms.ArrayToTensor()])
-        # target_depth_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # target_depth_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        target_depth_transform = transforms.Compose([flow_transforms.Scale_Single(228),
-                                                     flow_transforms.ArrayToTensor()])
+        input_transform = transforms.Compose([augmentations_new.Scale(228),
+                                              augmentations_new.ArrayToTensor()])
+        # target_depth_transform = transforms.Compose([augmentations_new.Scale(228)])
+        # target_depth_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
+        target_depth_transform = transforms.Compose([augmentations_new.Scale_Single(228),
+                                                     augmentations_new.ArrayToTensor()])
 
         img = input_transform(img)
         dpt = target_depth_transform(dpt)
@@ -86,14 +86,14 @@ class NyuDatasetLoader(Dataset):
 
         # image.save('img1.png')
 
-        # input_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # input_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        input_transform = transforms.Compose([flow_transforms.Scale(228),
-                                              flow_transforms.ArrayToTensor()])
-        # target_depth_transform = transforms.Compose([flow_transforms.Scale(228)])
-        # target_depth_transform = transforms.Compose([flow_transforms.ArrayToTensor()])
-        target_depth_transform = transforms.Compose([flow_transforms.Scale_Single(228),
-                                                     flow_transforms.ArrayToTensor()])
+        # input_transform = transforms.Compose([augmentations_new.Scale(228)])
+        # input_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
+        input_transform = transforms.Compose([augmentations_new.Scale(228),
+                                              augmentations_new.ArrayToTensor()])
+        # target_depth_transform = transforms.Compose([augmentations_new.Scale(228)])
+        # target_depth_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
+        target_depth_transform = transforms.Compose([augmentations_new.Scale_Single(228),
+                                                     augmentations_new.ArrayToTensor()])
 
         img = input_transform(img)
         dpt = target_depth_transform(dpt)
