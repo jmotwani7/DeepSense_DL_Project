@@ -1,6 +1,7 @@
 Train:
   batch_size: 32
   learning_rate: 0.01
+  stepdown_factor: 0.1
   reg: 0.0005
   epochs: 1
   steps: [20, 30, 40]
