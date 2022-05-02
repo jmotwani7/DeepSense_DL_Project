@@ -80,6 +80,7 @@ class AlexNetBasedModel(nn.Module):
         output_tensor = self.model(input_tensor)
         return output_tensor
 
+
 class Resnet50BasedUpProjModel(nn.Module):
     """"
     Resnet 50 Based model which accepts input of size 304 X 228 X 3
@@ -100,7 +101,7 @@ class Resnet50BasedUpProjModel(nn.Module):
 
         # remove until the resnet-50 AvgPool Layer
         self.model = nn.Sequential(*(list(resnet50.children())[:-2]),
-                                   nn.Conv2d(2048, 1024, (1, 1)),
+                                   nn.Conv2d(2048, 1024, (1, 1), bias=False),
                                    nn.BatchNorm2d(1024), FastUpProjection(1024, 512),
                                    FastUpProjection(512, 256),
                                    FastUpProjection(256, 128),

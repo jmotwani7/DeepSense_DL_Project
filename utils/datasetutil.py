@@ -11,6 +11,7 @@ from PIL import Image
 import os
 from augmentations import augmentations_new
 
+
 class CityScapeGenerator(torch.utils.data.Dataset):
     def __init__(self, root, split="train"):
         self.root = root
@@ -30,26 +31,12 @@ class CityScapeGenerator(torch.utils.data.Dataset):
         dpt_path = self.root + "/" + self.split + "/" + self.split + "_depth/" + img_name + ".jpg"
         img = np.asarray(Image.open(img_path))
         dpt = np.asarray(Image.open(dpt_path))
-
-
-        # if self.is_transform:
-        #     img,label = self.transform(img, label)
-        #
-        # if self.augmentations is not None:
-        #     img, label = self.augmentations(img, label)
-
-        input_transform = transforms.Compose([augmentations_new.Scale(228),
-                                              augmentations_new.ArrayToTensor()])
-        # target_depth_transform = transforms.Compose([augmentations_new.Scale(228)])
-        # target_depth_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
-        target_depth_transform = transforms.Compose([augmentations_new.Scale_Single(228),
+        input_transform = augmentations_new.Compose([augmentations_new.Scale(228),
                                                      augmentations_new.ArrayToTensor()])
 
-        img = input_transform(img)/255.
+        img, dpt = input_transform(img, dpt)
 
-        dpt = target_depth_transform(dpt)
-
-        return img.transpose((2, 1, 0)), dpt
+        return img.transpose((2, 1, 0)) / 255., dpt
 
     def transform(self, img, label):
         img = Image.fromarray(img).resize((480, 640), Image.ANTIALIAS)
@@ -59,9 +46,10 @@ class CityScapeGenerator(torch.utils.data.Dataset):
 
 
 class NyuDatasetLoader(Dataset):
-    def __init__(self, data_path, lists):
+    def __init__(self, data_path, lists, augment_data=True):
         self.data_path = data_path
         self.lists = lists
+        self.augment_data = augment_data
 
         self.nyu = h5py.File(self.data_path)
 
@@ -72,27 +60,20 @@ class NyuDatasetLoader(Dataset):
         img_idx = self.lists[index]
         img = self.imgs[img_idx].transpose(2, 1, 0)
         dpt = self.dpts[img_idx].transpose(1, 0)
-        # dpt = self.dpts[img_idx]
 
-        # image = Image.fromarray(np.uint8(img))
-        # depth = Image.fromarray(np.uint8(dpt))
+        if self.augment_data:
+            img_dep_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
+                                                           augmentations_new.RandomHorizontalFlip(),
+                                                           augmentations_new.RandomRotate(15),
+                                                           augmentations_new.AorB(augmentations_new.Scale(228), augmentations_new.RandomCrop((228, 304)), probA=0.8),
+                                                           augmentations_new.ArrayToTensor()
+                                                           ])
+        else:
+            img_dep_transform = transforms.Compose([augmentations_new.Scale(228),
+                                                    augmentations_new.ArrayToTensor()])
 
-        # image.save('img1.png')
-
-        # input_transform = transforms.Compose([augmentations_new.Scale(228)])
-        # input_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
-        input_transform = transforms.Compose([augmentations_new.Scale(228),
-                                              augmentations_new.ArrayToTensor()])
-        # target_depth_transform = transforms.Compose([augmentations_new.Scale(228)])
-        # target_depth_transform = transforms.Compose([augmentations_new.ArrayToTensor()])
-
-        target_depth_transform = transforms.Compose([augmentations_new.Scale_Single(228),
-                                                     augmentations_new.ArrayToTensor()])
-
-        img = input_transform(img) / 255.
-        dpt = target_depth_transform(dpt)
-
-        return img, dpt
+        img, dpt = img_dep_transform(img, dpt)
+        return img / 255., dpt
 
     def __len__(self):
         return len(self.lists)

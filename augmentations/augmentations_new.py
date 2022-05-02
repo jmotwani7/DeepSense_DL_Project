@@ -5,6 +5,7 @@ import numbers
 import scipy.ndimage as ndimage
 import random
 
+
 class CenterCrop(object):
     def __init__(self, size):
         if isinstance(size, numbers.Number):
@@ -27,39 +28,17 @@ class CenterCrop(object):
         return inputs, target
 
 
-class Scale_Single(object):
-
-    def __init__(self, size, order=2):
-        self.size = size
-        self.order = order
-
-    def __call__(self, inputs):
-        height, weight = inputs.shape
-        if (weight <= height and weight == self.size) or (height <= weight and height == self.size):
-            return inputs
-        if weight < height:
-            ratio = self.size / weight
-        else:
-            ratio = self.size / height
-        inputs = ndimage.interpolation.zoom(inputs, ratio, order=self.order)
-        return inputs
-
 class Scale(object):
 
     def __init__(self, size, order=2):
         self.size = size
         self.order = order
 
-    def __call__(self, inputs, target_depth=None, target_label=None):
+    def __call__(self, inputs, target_depth):
         h, w, _ = inputs.shape
 
         if (w <= h and w == self.size) or (h <= w and h == self.size):
-            if target_depth is not None and target_labels is not None:
-                return inputs, target_depth, target_labels
-            elif target_depth is not None:
-                return inputs, target_depth
-            elif target_labels is not None:
-                return inputs, target_labels
+            return inputs, target_depth
 
         if w < h:
             ratio = self.size / w
@@ -70,45 +49,38 @@ class Scale(object):
                            ndimage.interpolation.zoom(inputs[:, :, 1], ratio, order=self.order), \
                            ndimage.interpolation.zoom(inputs[:, :, 2], ratio, order=self.order)), axis=2)
 
-        if target_label is not None and target_depth is not None:
+        target_depth = ndimage.interpolation.zoom(target_depth, ratio, order=self.order)
+        return inputs, target_depth
 
-            target_label = ndimage.interpolation.zoom(target_label, ratio, order=self.order)
-            target_depth = ndimage.interpolation.zoom(target_depth, ratio, order=self.order)
-            return inputs, target_depth, target_label
-
-        elif target_depth is not None:
-            target_depth = ndimage.interpolation.zoom(target_depth, ratio, order=self.order)
-            return inputs, target_depth
-
-        elif target_label is not None:
-            target_label = ndimage.interpolation.zoom(target_label, ratio, order=self.order)
-            return inputs, target_label
-
-        else:
-            return inputs
 
 class Compose(object):
 
     def __init__(self, co_transforms):
         self.coff_transforms = co_transforms
 
-    def __call__(self, input, target_depth, target_label=None):
+    def __call__(self, input, target_depth):
         for i, trans in enumerate(self.coff_transforms):
-            if target_label == None:
-                input, target_depth, _ = trans(input, target_depth, target_depth)
-                return input, target_depth
-            else:
-                input, target_depth, target_label = trans(input, target_depth, target_label)
-                return input, target_depth, target_label
+            input, target_depth = trans(input, target_depth)
+        return input, target_depth
 
 
 class ArrayToTensor(object):
-    def __call__(self, arr):
-        try:
-            tensor = torch.from_numpy(arr).permute(2, 0, 1)
-        except:
-            tensor = torch.from_numpy(np.expand_dims(arr, axis=2)).permute(2, 0, 1)
-        return tensor.float()
+    def __call__(self, arr, depth):
+        tensor_img, tensor_dep = torch.from_numpy(arr).permute(2, 0, 1), torch.from_numpy(np.expand_dims(depth, axis=2)).permute(2, 0, 1)
+        return tensor_img.float(), tensor_dep.float()
+
+
+class AorB(object):
+    def __init__(self, transform_A, transform_B, probA=0.5):
+        self.transform_A = transform_A
+        self.transform_B = transform_B
+        self.probA = probA
+
+    def __call__(self, input, target_depth):
+        if random.random() < self.probA:
+            return self.transform_A(input, target_depth)
+        else:
+            return self.transform_B(input, target_depth)
 
 
 class Lambda(object):
@@ -118,6 +90,7 @@ class Lambda(object):
     def __call__(self, input, tar):
         return self.lambd(input, tar)
 
+
 class RandomCrop(object):
     def __init__(self, size):
         if isinstance(size, numbers.Number):
@@ -125,35 +98,34 @@ class RandomCrop(object):
         else:
             self.size = size
 
-    def __call__(self, inputs, target_depth, target_label):
+    def __call__(self, inputs, target_depth):
         h, w, _ = inputs.shape
         th, tw = self.size
         if w == tw and h == th:
-            return inputs, target_depth, target_label
+            return inputs, target_depth
 
         x1 = random.randint(0, w - tw)
         y1 = random.randint(0, h - th)
-        inputs = inputs[y1: y1 + th, x1: x1 + tw]
-        return inputs, target_depth[y1: y1 + th, x1: x1 + tw], target_label[y1: y1 + th, x1: x1 + tw]
+        return inputs[y1: y1 + th, x1: x1 + tw], target_depth[y1: y1 + th, x1: x1 + tw]
 
 
 class RandomHorizontalFlip(object):
-    def __call__(self, inputs, target_depth, target_label):
+    def __call__(self, inputs, target_depth):
         if random.random() < 0.5:
             inputs = np.flip(inputs, axis=0).copy()
             target_depth = np.flip(target_depth, axis=0).copy()
-            target_label = np.flip(target_label, axis=0).copy()
-        return inputs, target_depth, target_label
+        return inputs, target_depth
 
 
 class RandomVerticalFlip(object):
     def __call__(self, inputs, target):
         if random.random() < 0.5:
-            inputs[0] = np.flipud(inputs[0])
-            inputs[1] = np.flipud(inputs[1])
+            # inputs[0] = np.flipud(inputs[0])
+            inputs = np.flipud(inputs)
             target = np.flipud(target)
-            target[:, :, 1] *= -1
+            # target[:, :, 1] *= -1
         return inputs, target
+
 
 class RandomTranslate(object):
     def __init__(self, translation):
@@ -180,22 +152,23 @@ class RandomTranslate(object):
 
         return inputs, target
 
+
 class RandomRotate(object):
     def __init__(self, angle, diff_angle=0, order=2, reshape=False):
         self.angle = angle
         self.reshape = reshape
         self.order = order
 
-    def __call__(self, inputs, target_depth, target_label):
+    def __call__(self, inputs, target_depth):
         applied_angle = random.uniform(-self.angle, self.angle)
         angle1 = applied_angle
         angle1_rad = angle1 * np.pi / 180
 
         inputs = ndimage.interpolation.rotate(inputs, angle1, reshape=self.reshape, order=self.order)
         target_depth = ndimage.interpolation.rotate(target_depth, angle1, reshape=self.reshape, order=self.order)
-        target_label = ndimage.interpolation.rotate(target_label, angle1, reshape=self.reshape, order=self.order)
+        # target_label = ndimage.interpolation.rotate(target_label, angle1, reshape=self.reshape, order=self.order)
 
-        return inputs, target_depth, target_label
+        return inputs, target_depth
 
 
 class RandomCropRotate(object):
@@ -246,4 +219,3 @@ class RandomCropRotate(object):
         scale = Scale(self.size)
         inputs, target = crop(inputs, target)
         return scale(inputs, target)
-
