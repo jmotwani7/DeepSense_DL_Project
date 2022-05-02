@@ -3,8 +3,8 @@ Train:
   learning_rate: 0.01
   reg: 0.0005
   epochs: 1
-  steps: [40, 60, 80]
-  warmup: 2
+  steps: [20, 30, 40]
+  warmup: 5
   momentum: 0.9
   weights_path: na
 
@@ -18,4 +18,4 @@ data:
   save_best: True
 
 loss:
-  loss_type: Focal # CE or Focal or other loss functions
+  loss_type: inverseHuber # CE or Focal or other loss functions
