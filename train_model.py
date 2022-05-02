@@ -5,7 +5,7 @@ import torch
 import yaml
 from torch.utils.tensorboard import SummaryWriter
 
-from model.lossFunction import inverseHuberLoss,rmseLoss
+from model.lossFunction import inverseHuberLoss, rmseLoss
 from model.model_architecture import Resnet50BasedModel, Resnet50BasedUpProjModel, AlexNetBasedModel, EfficientNet
 from utils.datasetutil import get_nyuv2_test_train_dataloaders, load_test_train_ids
 from utils.trainutil import adjust_learning_rate, train, validate, save_json, load_weights
@@ -47,7 +47,7 @@ def main():
                                 momentum=args.momentum,
                                 weight_decay=args.reg)
     # optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
-    #criterion = torch.nn.MSELoss()  # inverseHuberLoss
+    # criterion = torch.nn.MSELoss()  # inverseHuberLoss
     if args.loss_type == "MSE":
         criterion = torch.nn.MSELoss()
         if torch.cuda.is_available():
@@ -86,8 +86,6 @@ def main():
         if loss < best:
             best = loss
             best_model = copy.deepcopy(model)
-            if args.save_best:
-                torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + f'-{epoch}.pth')
 
         writer.add_scalars('Training vs. Validation Loss',
                            {'Training': train_loss, 'Validation': loss},
@@ -95,8 +93,11 @@ def main():
         save_json(train_losses, f'metrics/train_{args.model.lower()}_berHu_default.json')
         save_json(val_losses, f'metrics/val_{args.model.lower()}_berHu_default.json')
         save_json(learning_rates, f'metrics/learning_rate_{args.model.lower()}_default.json')
+        if args.save_best and epoch % 10 == 0:
+            torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + f'-{epoch}.pth')
 
     print('Best Loss: {:.4f}'.format(best))
+    torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + f'-{epoch}-final.pth')
 
 
 if __name__ == '__main__':

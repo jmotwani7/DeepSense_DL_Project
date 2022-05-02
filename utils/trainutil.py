@@ -36,6 +36,7 @@ def adjust_learning_rate(optimizer, epoch, args):
         if epoch > step:
             loss_multiplier = args.stepdown_factor ** (len(args.steps) - idx)
             lr = args.learning_rate * loss_multiplier
+            break
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
