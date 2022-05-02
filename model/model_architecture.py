@@ -64,8 +64,8 @@ class AlexNetBasedModel(nn.Module):
                 param.requires_grad = False
         print("--------AlexNet Based--------")
         self.model = nn.Sequential(*(list(alexnet.children())[:-2]),
-                                   nn.Conv2d(256, 256, 3, padding=1, padding_mode='zeros'),
-                                   nn.BatchNorm2d(256),
+                                   nn.Conv2d(1024, 512, (1, 1)),
+                                   nn.BatchNorm2d(512),
                                    FastUpConvolution(256, 128),
                                    FastUpConvolution(128, 64),
                                    nn.Dropout2d(),
@@ -105,6 +105,44 @@ class Resnet50BasedUpProjModel(nn.Module):
                                    FastUpProjection(512, 256),
                                    FastUpProjection(256, 128),
                                    FastUpProjection(128, 64),
+                                   nn.Dropout2d(),
+                                   nn.Conv2d(64, 1, 3, padding=1, padding_mode='zeros'),
+                                   nn.ReLU(),
+                                   nn.Upsample(size=(228, 304), mode='bilinear'))
+        print(f'Trainable parameters for {self._get_name()} => {get_trainable_parameters(self.model)}')
+
+    def forward(self, input_tensor):
+        # input_tensor.to(self.device)
+        """Runs a forward pass over the Model"""
+        output_tensor = self.model(input_tensor)
+        return output_tensor
+
+class EfficientNet(nn.Module):
+    """"
+    EfficientNet Based model which accepts input of size 304 X 228 X 3
+    And generates a prediction of 160 X 128 X 1
+    Architecture :
+        EfficientNet Base Model ( without FC layers ) , followed by UnConvolutionLayers
+    """
+
+    def __init__(self, device='cpu', freeze_decoder_weights=False):
+        super(EfficientNet, self).__init__()
+        efficientNet = torchvision.models.efficientnet_b0(pretrained=True)
+        #print("___________________________________")
+        #print(list(efficientNet.children())[:-2])
+        self.freeze_decoder_weights = freeze_decoder_weights
+        self.device = device
+
+        if self.freeze_decoder_weights:
+            for param in efficientNet.parameters():
+                param.requires_grad = False
+        print("--------efficientnet Based--------")
+        self.model = nn.Sequential(*(list(efficientNet.children())[:-2]),
+                                   nn.Conv2d(1280, 512, 3, padding=1, padding_mode='zeros'),
+                                   nn.BatchNorm2d(512),
+                                   FastUpConvolution(512, 256),
+                                   FastUpConvolution(256, 128),
+                                   FastUpConvolution(128, 64),
                                    nn.Dropout2d(),
                                    nn.Conv2d(64, 1, 3, padding=1, padding_mode='zeros'),
                                    nn.ReLU(),
