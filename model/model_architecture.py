@@ -155,3 +155,78 @@ class EfficientNet(nn.Module):
         """Runs a forward pass over the Model"""
         output_tensor = self.model(input_tensor)
         return output_tensor
+class VGG16(nn.Module):
+    """"
+    VGG16 Based model which accepts input of size 304 X 228 X 3
+    And generates a prediction of 160 X 128 X 1
+    Architecture :
+        VGG16 Base Model ( without FC layers ) , followed by UnConvolutionLayers
+    """
+
+    def __init__(self, device='cpu', freeze_decoder_weights=False):
+        super(VGG16, self).__init__()
+        vgg16 = torchvision.models.vgg16(pretrained=True)
+        #print("___________________________________")
+        #print(list(efficientNet.children())[:-2])
+        self.freeze_decoder_weights = freeze_decoder_weights
+        self.device = device
+
+        if self.freeze_decoder_weights:
+            for param in vgg16.parameters():
+                param.requires_grad = False
+        print("--------VGG-16 Based--------")
+        self.model = nn.Sequential(*(list(vgg16.children())[:-2]),
+                                   nn.Conv2d(512, 512, 3, padding=1, padding_mode='zeros'),
+                                   nn.BatchNorm2d(512),
+                                   FastUpConvolution(512, 256),
+                                   FastUpConvolution(256, 128),
+                                   FastUpConvolution(128, 64),
+                                   nn.Dropout2d(),
+                                   nn.Conv2d(64, 1, 3, padding=1, padding_mode='zeros'),
+                                   nn.ReLU(),
+                                   nn.Upsample(size=(228, 304), mode='bilinear'))
+        print(f'Trainable parameters for {self._get_name()} => {get_trainable_parameters(self.model)}')
+
+    def forward(self, input_tensor):
+        # input_tensor.to(self.device)
+        """Runs a forward pass over the Model"""
+        output_tensor = self.model(input_tensor)
+        return output_tensor
+
+class VGG19(nn.Module):
+    """"
+    VGG19 Based model which accepts input of size 304 X 228 X 3
+    And generates a prediction of 160 X 128 X 1
+    Architecture :
+        VGG19 Base Model ( without FC layers ) , followed by UnConvolutionLayers
+    """
+
+    def __init__(self, device='cpu', freeze_decoder_weights=False):
+        super(VGG19, self).__init__()
+        vgg19 = torchvision.models.vgg19(pretrained=True)
+        #print("___________________________________")
+        #print(list(efficientNet.children())[:-2])
+        self.freeze_decoder_weights = freeze_decoder_weights
+        self.device = device
+
+        if self.freeze_decoder_weights:
+            for param in vgg19.parameters():
+                param.requires_grad = False
+        print("--------VGG-19 Based--------")
+        self.model = nn.Sequential(*(list(vgg19.children())[:-2]),
+                                   nn.Conv2d(512, 512, 3, padding=1, padding_mode='zeros',bias=False),
+                                   nn.BatchNorm2d(512),
+                                   FastUpProjection(512, 256),
+                                   FastUpProjection(256, 128),
+                                   FastUpProjection(128, 64),
+                                   nn.Dropout2d(),
+                                   nn.Conv2d(64, 1, 3, padding=1, padding_mode='zeros'),
+                                   nn.ReLU(),
+                                   nn.Upsample(size=(228, 304), mode='bilinear'))
+        print(f'Trainable parameters for {self._get_name()} => {get_trainable_parameters(self.model)}')
+
+    def forward(self, input_tensor):
+        # input_tensor.to(self.device)
+        """Runs a forward pass over the Model"""
+        output_tensor = self.model(input_tensor)
+        return output_tensor

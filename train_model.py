@@ -6,7 +6,7 @@ import yaml
 from torch.utils.tensorboard import SummaryWriter
 
 from model.lossFunction import inverseHuberLoss, rmseLoss
-from model.model_architecture import Resnet50BasedModel, Resnet50BasedUpProjModel, AlexNetBasedModel, EfficientNet
+from model.model_architecture import Resnet50BasedModel, Resnet50BasedUpProjModel, AlexNetBasedModel, EfficientNet, VGG16, VGG19
 from utils.datasetutil import get_nyuv2_test_train_dataloaders, load_test_train_ids
 from utils.trainutil import adjust_learning_rate, train, validate, save_json, load_weights
 
@@ -31,6 +31,10 @@ def main():
         model = AlexNetBasedModel(device=device)
     elif args.model_class == 'EfficientNet':
         model = EfficientNet(device=device)
+    elif args.model_class == 'VGG-16Based-UpConvolution':
+        model = VGG16(device=device)
+    elif args.model_class == 'VGG-19Based-UpConvolution':
+        model = VGG19(device=device)
     elif args.model_class == 'Resnet50BasedModel':
         model = Resnet50BasedModel(device=device)
     elif args.model_class == 'Resnet50BasedUpProjModel':
