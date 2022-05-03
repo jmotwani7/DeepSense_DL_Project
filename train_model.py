@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from model.lossFunction import inverseHuberLoss, rmseLoss
 from model.model_architecture import Resnet50BasedModel, Resnet50BasedUpProjModel, AlexNetBasedModel, EfficientNet, VGG16, VGG19
-from utils.datasetutil import get_nyuv2_test_train_dataloaders, load_test_train_ids
+from utils.datasetutil import get_nyuv2_test_train_dataloaders, load_test_train_ids, get_cityscape_val_train_dataloader
 from utils.trainutil import adjust_learning_rate, train, validate, save_json, load_weights
 
 
@@ -78,7 +78,11 @@ def main():
         criterion = criterion.cuda()'''
     best = float('inf')
     train_ids, val_ids, test_ids = load_test_train_ids('datasets/Nyu_v2/train_val_test_ids.json')
-    train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size, apply_augmentations=args.apply_augmentations)
+    if args.dataset == 'cityscape':
+        train_loader, val_loader = get_cityscape_val_train_dataloader('datasets/cityscapes/data', batch_size=args.batch_size)
+        # test_loader = val_loader
+    else:
+        train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size, apply_augmentations=args.apply_augmentations)
 
     train_losses = []
     val_losses = []

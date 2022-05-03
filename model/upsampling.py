@@ -1,7 +1,39 @@
 import torch.nn as nn
 import torch
-from torch.nn.functional import pad
+from torch.nn.functional import pad, conv_transpose2d
 import numpy as np
+
+
+class Unpool(nn.Module):
+    """
+    The unpooling layer
+    """
+
+    def __init__(self, stride=2):
+        super(Unpool, self).__init__()
+        self.stride = stride
+        self.mask = torch.zeros(1, 1, stride, stride)
+        self.mask[:, :, 0, 0] = 1
+
+    def forward(self, x):
+        assert x.dim() == 4
+        num_channels = x.size(1)
+        return conv_transpose2d(x, self.mask.detach().type_as(x).expand(num_channels, 1, -1, -1), stride=self.stride, groups=num_channels)
+
+
+class UpConvolution(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=5):
+        super(UpConvolution, self).__init__()
+        padding = (kernel_size - 1) // 2
+        assert 2 * padding == kernel_size - 1, "parameters incorrect. kernel={}, padding={}".format(kernel_size, padding)
+        self.upconv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=padding, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, input):
+        return self.upconv(input)
 
 
 class FastUpConvolution(nn.Module):

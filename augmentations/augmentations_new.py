@@ -14,17 +14,33 @@ class CenterCrop(object):
             self.size = size
 
     def __call__(self, inputs, tar):
-        h1, w1, _ = inputs[0].shape
-        h2, w2, _ = inputs[1].shape
+        h1, w1, _ = inputs.shape
         th, tw = self.size
-        x1 = int(round((w1 - tw) / 2.))
-        y1 = int(round((h1 - th) / 2.))
-        x2 = int(round((w2 - tw) / 2.))
-        y2 = int(round((h2 - th) / 2.))
+        x1 = int(round((w1 - th) / 2.))
+        y1 = int(round((h1 - tw) / 2.))
 
-        inputs[0] = inputs[0][y1: y1 + th, x1: x1 + tw]
-        inputs[1] = inputs[1][y2: y2 + th, x2: x2 + tw]
+        inputs = inputs[y1: y1 + th, x1: x1 + tw]
         target = tar[y1: y1 + th, x1: x1 + tw]
+        return inputs, target
+
+
+class RandomCenterCrop(object):
+    def __init__(self, size):
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+
+    def __call__(self, inputs, tar):
+        h1, w1, _ = inputs.shape
+        th, tw = self.size
+        width = random.randint(tw, h1 - 2)
+        height = round((h1 / w1) * width)
+        x1 = int(round((w1 - width) / 2.))
+        y1 = int(round((h1 - height) / 2.))
+
+        inputs = inputs[y1: y1 + height, x1: x1 + width]
+        target = tar[y1: y1 + height, x1: x1 + width]
         return inputs, target
 
 

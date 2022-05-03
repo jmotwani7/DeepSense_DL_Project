@@ -1,14 +1,14 @@
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader, Dataset
-import torch
-import h5py
-import random
-import json
-from pathlib import Path
 import glob
+import json
+import os
+import random
+from pathlib import Path
+
+import h5py
 import numpy as np
 from PIL import Image
-import os
+from torch.utils.data import DataLoader, Dataset
+
 from augmentations import augmentations_new
 from skimage import transform
 
@@ -50,38 +50,83 @@ class CityScapeGenerator(torch.utils.data.Dataset):
         return img / 255., dpt
 
 
+# class NyuDatasetLoader(Dataset):
+#     def __init__(self, data_path, lists, augment_data=True):
+#         self.data_path = data_path
+#         self.lists = lists
+#         self.augment_data = augment_data
+#
+#         self.nyu = h5py.File(self.data_path)
+#
+#         self.imgs = self.nyu['images']
+#         self.dpts = self.nyu['depths']
+#         if self.augment_data:
+#             self.img_dep_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
+#                                                                 augmentations_new.RandomHorizontalFlip(),
+#                                                                 augmentations_new.RandomRotate(15),
+#                                                                 augmentations_new.AorB(augmentations_new.Scale(228), augmentations_new.RandomCrop((228, 304)), probA=0.8),
+#                                                                 augmentations_new.ArrayToTensor()
+#                                                                 ])
+#         else:
+#             self.img_dep_transform = augmentations_new.Compose([augmentations_new.Scale(228),
+#                                                                 augmentations_new.ArrayToTensor()])
+#
+#     def __getitem__(self, index):
+#         img_idx = self.lists[index]
+#         img = self.imgs[img_idx].transpose(2, 1, 0)
+#         dpt = self.dpts[img_idx].transpose(1, 0)
+#
+#         img, dpt = self.img_dep_transform(img, dpt)
+#         return img / 255., dpt
+#
+#     def __len__(self):
+#         return len(self.lists)
+
 class NyuDatasetLoader(Dataset):
-    def __init__(self, data_path, lists, augment_data=True):
+    def __init__(self, data_path, lists, augment_data=True, augment_size=100):
         self.data_path = data_path
         self.lists = lists
         self.augment_data = augment_data
+        self.augment_size = augment_size
 
-        self.nyu = h5py.File(self.data_path)
-
-        self.imgs = self.nyu['images']
-        self.dpts = self.nyu['depths']
-
-    def __getitem__(self, index):
-        img_idx = self.lists[index]
-        img = self.imgs[img_idx].transpose(2, 1, 0)
-        dpt = self.dpts[img_idx].transpose(1, 0)
+        self.imgs = []  # self.nyu['images']
+        self.dpts = []  # self.nyu['depths']
 
         if self.augment_data:
-            img_dep_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
-                                                           augmentations_new.RandomHorizontalFlip(),
-                                                           augmentations_new.RandomRotate(15),
-                                                           augmentations_new.AorB(augmentations_new.Scale(228), augmentations_new.RandomCrop((228, 304)), probA=0.8),
-                                                           augmentations_new.ArrayToTensor()
-                                                           ])
-        else:
-            img_dep_transform = transforms.Compose([augmentations_new.Scale(228),
-                                                    augmentations_new.ArrayToTensor()])
+            self.augmentation_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
+                                                                     augmentations_new.RandomHorizontalFlip(),
+                                                                     augmentations_new.RandomRotate(20),
+                                                                     augmentations_new.AorB(augmentations_new.Scale(228), augmentations_new.Compose([augmentations_new.CenterCrop((228, 304)), augmentations_new.Scale(228)], probA=0.7)),
+                                                                     augmentations_new.ArrayToTensor()
+                                                                     ])
+            self.default_transform = augmentations_new.Compose([augmentations_new.Scale(228),
+                                                                augmentations_new.ArrayToTensor()])
+            self.initialize_augmentations(h5py.File(self.data_path))
 
-        img, dpt = img_dep_transform(img, dpt)
-        return img / 255., dpt
+    def initialize_augmentations(self, nyu_dataset):
+        # for img, dep in zip(nyu_dataset['images'], nyu_dataset['depths']):
+        for idx in self.lists:
+            img = nyu_dataset['images'][idx].transpose(2, 1, 0)
+            dep = nyu_dataset['depths'][idx].transpose(1, 0)
+            t_img, t_dep = self.default_transform(img, dep)
+            self.imgs.append(t_img / 255.)
+            self.dpts.append(t_dep)
+
+        if self.augment_data:
+            for _ in range(self.augment_size):
+                rand_idx = random.sample(self.lists, 1)[0]
+                img = nyu_dataset['images'][rand_idx].transpose(2, 1, 0)
+                dep = nyu_dataset['depths'][rand_idx].transpose(1, 0)
+                t_img, t_dep = self.augmentation_transform(img, dep)
+                self.imgs.append(t_img / 255.)
+                self.dpts.append(t_dep)
+
+    def __getitem__(self, index):
+        # img_idx = self.lists[index]
+        return self.imgs[index], self.dpts[index]
 
     def __len__(self):
-        return len(self.lists)
+        return len(self.imgs)
 
 
 def load_test_train_ids(file_path):
@@ -106,9 +151,9 @@ def save_test_train_ids(file_path, train_percent=0.8, last_id=1448):
         f.write(json.dumps(ids_dict))
 
 
-def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=32):
-    return DataLoader(NyuDatasetLoader(dataset_path, train_ids), batch_size, shuffle=True), \
-           DataLoader(NyuDatasetLoader(dataset_path, val_ids), batch_size, shuffle=True), \
+def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=10000):
+    return DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=True), \
+           DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)), batch_size, shuffle=True), \
            DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
 
 
