@@ -92,7 +92,7 @@ def train(epoch, data_loader, model, optimizer, criterion, writer: SummaryWriter
     return losses.avg
 
 
-def validate(epoch, val_loader, model, criterion, writer: SummaryWriter):
+def validate(epoch, val_loader, model, criterion, writer: SummaryWriter = None):
     iter_time = AverageMeter()
     losses = AverageMeter()
     acc = AverageMeter()
@@ -110,7 +110,8 @@ def validate(epoch, val_loader, model, criterion, writer: SummaryWriter):
             loss = criterion(out, target)
 
             if idx == 0:
-                write_image_grid(writer, data, target, out, step=epoch, sample='Validation')
+                if writer:
+                    write_image_grid(writer, data, target, out, step=epoch, sample='Validation')
         losses.update(loss, out.shape[0])
         # acc.update(batch_acc, out.shape[0])
 

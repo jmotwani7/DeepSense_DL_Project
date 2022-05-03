@@ -16,11 +16,10 @@ def inverseHuberLoss(out, target):
     """
     diff = torch.abs(out - target)
     Coff = 0.2 * torch.max(diff).item()
-    return torch.mean(torch.where(diff < Coff, diff, (diff *diff + Coff *Coff) / (2 * Coff)))
+    return torch.mean(torch.where(diff < Coff, diff, (diff * diff + Coff * Coff) / (2 * Coff)))
 
-def rmseLoss(out, target):
+
+def rmseLoss(out, target, eps=10e-6):
     criterion = torch.nn.MSELoss()
-    eps = 1e-6
-    loss = torch.sqrt(criterion(out, target)+eps)
+    loss = torch.sqrt(criterion(out, target) + eps)
     return loss
-

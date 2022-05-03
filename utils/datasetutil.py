@@ -91,7 +91,8 @@ class NyuDatasetLoader(Dataset):
 
         self.imgs = []  # self.nyu['images']
         self.dpts = []  # self.nyu['depths']
-
+        self.default_transform = augmentations_new.Compose([augmentations_new.Scale(228),
+                                                            augmentations_new.ArrayToTensor()])
         if self.augment_data:
             self.augmentation_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
                                                                      augmentations_new.RandomHorizontalFlip(),
@@ -100,9 +101,7 @@ class NyuDatasetLoader(Dataset):
                                                                                                                    augmentations_new.Compose([augmentations_new.RandomCenterCrop((228, 304)), augmentations_new.ScaleExact((228, 304))])), probA=0.25),
                                                                      augmentations_new.ArrayToTensor()
                                                                      ])
-            self.default_transform = augmentations_new.Compose([augmentations_new.Scale(228),
-                                                                augmentations_new.ArrayToTensor()])
-            self.initialize_augmentations(h5py.File(self.data_path))
+        self.initialize_augmentations(h5py.File(self.data_path))
 
     def initialize_augmentations(self, nyu_dataset):
         # for img, dep in zip(nyu_dataset['images'], nyu_dataset['depths']):
@@ -184,8 +183,8 @@ def save_test_train_ids(file_path, train_percent=0.8, last_id=1448):
 
 
 def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=5000):
-    return DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=True), \
-           DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)), batch_size, shuffle=True), \
+    # return #DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=True),
+    return None, DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)), batch_size, shuffle=True), \
            DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
 
 
