@@ -4,6 +4,7 @@ import numpy as np
 import numbers
 import scipy.ndimage as ndimage
 import random
+from skimage import transform
 
 
 class CenterCrop(object):
@@ -16,11 +17,15 @@ class CenterCrop(object):
     def __call__(self, inputs, tar):
         h1, w1, _ = inputs.shape
         th, tw = self.size
+        if h1 == th and w1 == tw:
+            return inputs, tar
         x1 = int(round((w1 - th) / 2.))
         y1 = int(round((h1 - tw) / 2.))
 
         inputs = inputs[y1: y1 + th, x1: x1 + tw]
         target = tar[y1: y1 + th, x1: x1 + tw]
+        if inputs.shape[0] == 0:
+            print('center crop issue')
         return inputs, target
 
 
@@ -34,7 +39,7 @@ class RandomCenterCrop(object):
     def __call__(self, inputs, tar):
         h1, w1, _ = inputs.shape
         th, tw = self.size
-        width = random.randint(tw, h1 - 2)
+        width = random.randint(tw, w1 - 2)
         height = round((h1 / w1) * width)
         x1 = int(round((w1 - width) / 2.))
         y1 = int(round((h1 - height) / 2.))
@@ -69,6 +74,21 @@ class Scale(object):
         return inputs, target_depth
 
 
+class ScaleExact(object):
+
+    def __init__(self, size: tuple):
+        self.size = size
+
+    def __call__(self, inputs, target_depth):
+        h, w, _ = inputs.shape
+        req_h, req_w = self.size
+
+        if w == req_w and h == req_h:
+            return inputs, target_depth
+
+        return transform.resize(inputs, (req_h, req_w)), transform.resize(target_depth, (req_h, req_w))
+
+
 class Compose(object):
 
     def __init__(self, co_transforms):
@@ -77,6 +97,8 @@ class Compose(object):
     def __call__(self, input, target_depth):
         for i, trans in enumerate(self.coff_transforms):
             input, target_depth = trans(input, target_depth)
+            if input.shape[0] == 0:
+                print('some fuck up')
         return input, target_depth
 
 

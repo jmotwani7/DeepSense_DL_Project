@@ -7,13 +7,13 @@ from pathlib import Path
 import h5py
 import numpy as np
 from PIL import Image
+from skimage import transform
 from torch.utils.data import DataLoader, Dataset
 
 from augmentations import augmentations_new
-from skimage import transform
 
 
-class CityScapeGenerator(torch.utils.data.Dataset):
+class CityScapeGenerator(Dataset):
     def __init__(self, root, split="train", augment_data=True):
         self.root = root
         self.split = split
@@ -43,8 +43,8 @@ class CityScapeGenerator(torch.utils.data.Dataset):
                                                            augmentations_new.ArrayToTensor()
                                                            ])
         else:
-            img_dep_transform = transforms.Compose([augmentations_new.Scale(228),
-                                                    augmentations_new.ArrayToTensor()])
+            img_dep_transform = augmentations_new.Compose([augmentations_new.Scale(228),
+                                                           augmentations_new.ArrayToTensor()])
         img, dpt = img_dep_transform(img, dpt)
 
         return img / 255., dpt
@@ -95,8 +95,9 @@ class NyuDatasetLoader(Dataset):
         if self.augment_data:
             self.augmentation_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
                                                                      augmentations_new.RandomHorizontalFlip(),
-                                                                     augmentations_new.RandomRotate(20),
-                                                                     augmentations_new.AorB(augmentations_new.Scale(228), augmentations_new.Compose([augmentations_new.CenterCrop((228, 304)), augmentations_new.Scale(228)], probA=0.7)),
+                                                                     augmentations_new.AorB(augmentations_new.Scale(228),
+                                                                                            augmentations_new.AorB(augmentations_new.Compose([augmentations_new.RandomRotate(30), augmentations_new.CenterCrop((228, 304))]),
+                                                                                                                   augmentations_new.Compose([augmentations_new.RandomCenterCrop((228, 304)), augmentations_new.ScaleExact((228, 304))])), probA=0.25),
                                                                      augmentations_new.ArrayToTensor()
                                                                      ])
             self.default_transform = augmentations_new.Compose([augmentations_new.Scale(228),
@@ -113,13 +114,15 @@ class NyuDatasetLoader(Dataset):
             self.dpts.append(t_dep)
 
         if self.augment_data:
-            for _ in range(self.augment_size):
+            for i in range(self.augment_size):
                 rand_idx = random.sample(self.lists, 1)[0]
                 img = nyu_dataset['images'][rand_idx].transpose(2, 1, 0)
                 dep = nyu_dataset['depths'][rand_idx].transpose(1, 0)
                 t_img, t_dep = self.augmentation_transform(img, dep)
                 self.imgs.append(t_img / 255.)
                 self.dpts.append(t_dep)
+                if i % 100 == 0:
+                    print(f'Generated {i} data augmentations')
 
     def __getitem__(self, index):
         # img_idx = self.lists[index]
@@ -127,6 +130,32 @@ class NyuDatasetLoader(Dataset):
 
     def __len__(self):
         return len(self.imgs)
+
+
+# class NyuDatasetLoaderLight(Dataset):
+#     def __init__(self, data_path):
+#         self.data_path = data_path
+#
+#         self.imgs = []
+#         self.dpts = []
+#
+#         self.default_transform = augmentations_new.ArrayToTensor()
+#         npy_dataset = self.load_pickle(self.data_path)
+#         for i in range(npy_dataset.shape[0]):
+#             img, dep = self.default_transform(npy_dataset[i, :, :, :3], npy_dataset[i, :, :, 3])
+#             self.imgs.append(img)
+#             self.dpts.append(dep)
+#
+#     def load_pickle(self, dataset_loc):
+#         dataset = np.load(dataset_loc)
+#         print(f'Dataset loaded successfully {dataset[0]}')
+#         return dataset
+#
+#     def __getitem__(self, index):
+#         return self.imgs[index], self.dpts[index]
+#
+#     def __len__(self):
+#         return len(self.imgs)
 
 
 def load_test_train_ids(file_path):
@@ -151,10 +180,16 @@ def save_test_train_ids(file_path, train_percent=0.8, last_id=1448):
         f.write(json.dumps(ids_dict))
 
 
-def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=10000):
+def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=5000):
     return DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=True), \
            DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)), batch_size, shuffle=True), \
            DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
+
+
+# def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=10000):
+#     return DataLoader(NyuDatasetLoaderLight(dataset_path), batch_size, shuffle=True), \
+#            DataLoader(NyuDatasetLoaderLight(dataset_path), batch_size, shuffle=True), \
+#            DataLoader(NyuDatasetLoaderLight(dataset_path, test_ids), batch_size, shuffle=True)
 
 
 def get_cityscape_val_train_dataloader(dataset_path, batch_size=32):
