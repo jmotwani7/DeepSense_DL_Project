@@ -1,16 +1,17 @@
 Train:
   batch_size: 32
-  learning_rate: 0.01
-  stepdown_factor: 0.1
-  reg: 0.0005
-  epochs: 1
-  steps: [20, 30, 40]
+  learning_rate: 0.0001
+  stepdown_factor: 0.5
+  reg: 0.005
+  epochs: 50
+  steps: [10, 20, 30]
   warmup: 5
   momentum: 0.9
-  weights_path: na
+  weights_path: checkpoints/alexnet-upprojection-0.pth
+  model_class: AlexNetBasedModel
 
 network:
-  model: AlexNet-upprojection
+  model: AlexNet-upprojection-v2
 
 data:
   imbalance: imbalance # regular or imbalance

@@ -63,9 +63,10 @@ class AlexNetBasedModel(nn.Module):
             for param in alexnet.parameters():
                 param.requires_grad = False
         print("--------AlexNet Based--------")
+        print(alexnet)
         self.model = nn.Sequential(*(list(alexnet.children())[:-2]),
-                                   nn.Conv2d(1024, 512, (1, 1)),
-                                   nn.BatchNorm2d(512),
+                                   nn.Conv2d(256, 256, 3, padding=1, padding_mode='zeros'),
+                                   nn.BatchNorm2d(256),
                                    FastUpConvolution(256, 128),
                                    FastUpConvolution(128, 64),
                                    nn.Dropout2d(),

@@ -27,7 +27,7 @@ def main():
         for k, v in config[key].items():
             setattr(args, k, v)
 
-    if args.model == "AlexNet-upprojection":
+    if args.model_class == 'AlexNetBasedModel':
         model = AlexNetBasedModel(device=device)
     elif args.model_class == 'EfficientNet':
         model = EfficientNet(device=device)
