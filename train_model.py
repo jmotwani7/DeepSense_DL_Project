@@ -50,21 +50,27 @@ def main():
 
     if args.optimizer == 'Adam':
         optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+        print('Using Adam optimzier...')
     elif args.optimizer == 'SGD':
         optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
                                     momentum=args.momentum,
                                     weight_decay=args.reg)
+        print('Using SGD optimzier...')
     else:
+        print('Using Adam optimzier...')
         optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
 
     # criterion = torch.nn.MSELoss()  # inverseHuberLoss
     if args.loss_type == "MSE":
+        print('Using MSE Loss...')
         criterion = torch.nn.MSELoss()
         if torch.cuda.is_available():
             criterion = criterion.cuda()
     elif args.loss_type == "RMSE":
+        print('Using RMSE Loss...')
         criterion = rmseLoss
     else:
+        print('Using Inverese Hubert Loss...')
         criterion = inverseHuberLoss
 
     '''if torch.cuda.is_available():
@@ -99,6 +105,9 @@ def main():
 
         writer.add_scalars('Training vs. Validation Loss',
                            {'Training': train_loss, 'Validation': loss},
+                           global_step=epoch)
+        writer.add_scalars('Learning Rate',
+                           {'Training': lr},
                            global_step=epoch)
         save_json(train_losses, f'metrics/train_{args.model.lower()}_berHu_default.json')
         save_json(val_losses, f'metrics/val_{args.model.lower()}_berHu_default.json')
