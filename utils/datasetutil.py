@@ -14,7 +14,7 @@ from skimage import transform
 
 
 class CityScapeGenerator(torch.utils.data.Dataset):
-    def __init__(self, root, split="train",  augment_data=True):
+    def __init__(self, root, split="train", augment_data=True):
         self.root = root
         self.split = split
         self.augment_data = augment_data
@@ -33,8 +33,8 @@ class CityScapeGenerator(torch.utils.data.Dataset):
         dpt_path = self.root + "/" + self.split + "/" + "depth/" + img_name + ".jpg"
         img = np.asarray(Image.open(img_path))
         dpt = np.asarray(Image.open(dpt_path))
-        img = transform.resize(img, (480,640))
-        dpt = transform.resize(dpt, (480,640))
+        img = transform.resize(img, (480, 640))
+        dpt = transform.resize(dpt, (480, 640))
         if self.augment_data:
             img_dep_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
                                                            augmentations_new.RandomHorizontalFlip(),
@@ -48,7 +48,6 @@ class CityScapeGenerator(torch.utils.data.Dataset):
         img, dpt = img_dep_transform(img, dpt)
 
         return img / 255., dpt
-
 
 
 class NyuDatasetLoader(Dataset):
