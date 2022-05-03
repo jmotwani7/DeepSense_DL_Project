@@ -1,17 +1,17 @@
 Train:
   batch_size: 32
-  learning_rate: 0.001
-  stepdown_factor: 0.1
-  reg: 0.0005
+  learning_rate: 0.0001
+  stepdown_factor: 0.5
+  reg: 0.005
   epochs: 50
-  steps: [20, 30, 40]
+  steps: [10, 20, 35]
   warmup: 5
   momentum: 0.9
   weights_path: na
   model_class: VGG-19Based-UpConvolution # other possible values Resnet50BasedModel, Resnet50BasedUpProjModel
 
 network:
-  model: vgg-19-upconv
+  model: vgg-19-upProjection
 
 data:
   imbalance: imbalance # regular or imbalance
