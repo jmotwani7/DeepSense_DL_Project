@@ -47,10 +47,16 @@ def main():
     writer = SummaryWriter(f'runs/{args.model.lower()}')
     if torch.cuda.is_available():
         model = model.cuda()
-    optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
-                                momentum=args.momentum,
-                                weight_decay=args.reg)
-    # optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+
+    if args.optimizer == 'Adam':
+        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+    elif args.optimizer == 'SGD':
+        optimizer = torch.optim.SGD(model.parameters(), args.learning_rate,
+                                    momentum=args.momentum,
+                                    weight_decay=args.reg)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), args.learning_rate)
+
     # criterion = torch.nn.MSELoss()  # inverseHuberLoss
     if args.loss_type == "MSE":
         criterion = torch.nn.MSELoss()
@@ -65,27 +71,27 @@ def main():
         criterion = criterion.cuda()'''
     best = float('inf')
     train_ids, val_ids, test_ids = load_test_train_ids('datasets/Nyu_v2/train_val_test_ids.json')
-    train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size)
+    train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size, apply_augmentations=args.apply_augmentations)
 
     train_losses = []
     val_losses = []
     learning_rates = []
-    for epoch in range(args.epochs):
+    for epoch in range(args.start_epoch, args.epochs):
         lr = adjust_learning_rate(optimizer, epoch, args)
         print(f'------------------ Learning Rate for EPOCH {epoch} => {lr} ------------------')
         learning_rates.append(lr)
 
         # train loop
-        print(f'********* Training Started for epoch {epoch} *********')
+        # print(f'********* Training Started for epoch {epoch} *********')
         train_loss = train(epoch, train_loader, model, optimizer, criterion, writer)
         train_losses.append(train_loss.item())
-        print(f'Training loss for the EPOCH {epoch} ==> {train_loss:.4f}')
+        print(f'Training loss ==> {train_loss:.4f}')
 
         # validation loop
-        print(f'********* Validation Started for epoch {epoch} *********')
+        # print(f'********* Validation Started for epoch {epoch} *********')
         loss = validate(epoch, val_loader, model, criterion, writer)
         val_losses.append(loss.item())
-        print(f'Validation loss for the EPOCH {epoch} ==> {loss:.4f}')
+        print(f'Validation loss ==> {loss:.4f}')
 
         if loss < best:
             best = loss

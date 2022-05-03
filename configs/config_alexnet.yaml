@@ -4,16 +4,19 @@ Train:
   stepdown_factor: 0.5
   reg: 0.005
   epochs: 50
-  steps: [10, 20, 30]
+  steps: [ 10, 20, 30 ]
   warmup: 5
   momentum: 0.9
   weights_path: checkpoints/alexnet-upprojection-0.pth
   model_class: AlexNetBasedModel
+  start_epoch: 0
+  optimizer: Adam # or SGD Default is Adam
 
 network:
   model: AlexNet-upprojection-v2
 
 data:
+  apply_augmentations: True
   imbalance: imbalance # regular or imbalance
   reweight: True
   beta: 0.999

@@ -101,9 +101,9 @@ def save_test_train_ids(file_path, train_percent=0.8, last_id=1448):
         f.write(json.dumps(ids_dict))
 
 
-def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=32):
-    return DataLoader(NyuDatasetLoader(dataset_path, train_ids), batch_size, shuffle=True), \
-           DataLoader(NyuDatasetLoader(dataset_path, val_ids), batch_size, shuffle=True), \
+def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True):
+    return DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations), batch_size, shuffle=True), \
+           DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations), batch_size, shuffle=True), \
            DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
 
 
