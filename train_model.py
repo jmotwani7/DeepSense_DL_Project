@@ -1,5 +1,6 @@
 import argparse
 import copy
+import time
 
 import torch
 import yaml
@@ -83,6 +84,7 @@ def main():
     val_losses = []
     learning_rates = []
     for epoch in range(args.start_epoch, args.epochs):
+        start = time.time()
         lr = adjust_learning_rate(optimizer, epoch, args)
         print(f'------------------ Learning Rate for EPOCH {epoch} => {lr} ------------------')
         learning_rates.append(lr)
@@ -114,6 +116,8 @@ def main():
         save_json(learning_rates, f'metrics/learning_rate_{args.model.lower()}_default.json')
         if args.save_best and epoch % 10 == 0:
             torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + f'-{epoch}.pth')
+
+        print(f'Time taken for Epoch => {time.time() - start} seconds')
 
     print('Best Loss: {:.4f}'.format(best))
     torch.save(best_model.state_dict(), './checkpoints/' + args.model.lower() + f'-{epoch}-final.pth')
