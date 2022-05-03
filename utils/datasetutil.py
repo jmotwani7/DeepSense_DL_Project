@@ -118,10 +118,13 @@ class NyuDatasetLoader(Dataset):
                 rand_idx = random.sample(self.lists, 1)[0]
                 img = nyu_dataset['images'][rand_idx].transpose(2, 1, 0)
                 dep = nyu_dataset['depths'][rand_idx].transpose(1, 0)
-                t_img, t_dep = self.augmentation_transform(img, dep)
-                self.imgs.append(t_img / 255.)
-                self.dpts.append(t_dep)
-                if i % 100 == 0:
+                try:
+                    t_img, t_dep = self.augmentation_transform(img, dep)
+                    self.imgs.append(t_img / 255.)
+                    self.dpts.append(t_dep)
+                except:
+                    print('Exception occured while applying augmentation transform')
+                if i % 500 == 0:
                     print(f'Generated {i} data augmentations')
 
     def __getitem__(self, index):
