@@ -21,7 +21,7 @@ def plot_line_chart(X_axis_index: list, Y_axis_data, title, file_path, x_label='
     -------
 
     """
-    plt.figure(figsize=(20, 8))
+    plt.figure(figsize=(16, 12))
     legend_vals = []
     for i, (legend, Y_axis_val) in enumerate(Y_axis_data):
         plt.plot(X_axis_index, Y_axis_val, color_pallete[i])
