@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 color_pallete = ['red', 'blue', 'green', 'yellow', 'black', 'purple']
 
 
-def plot_line_chart(X_axis_index: list, Y_axis_data, title, file_path, x_label='Epochs', y_label='Loss', legend_loc=4):
+def plot_line_chart(X_axis_index: list, Y_axis_data, title, file_path, x_label='Epochs', y_label='Loss', legend_loc=1):
     """
 
     Parameters

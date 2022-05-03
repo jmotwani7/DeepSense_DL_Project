@@ -147,4 +147,4 @@ def save_json(json_data, file_path):
 
 def load_json(file_path):
     with open(file_path, 'r') as f:
-        json.loads(f.read())
+        return json.loads(f.read())
