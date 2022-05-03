@@ -1,6 +1,5 @@
 import glob
 import json
-import os
 import random
 from pathlib import Path
 
@@ -14,40 +13,66 @@ from augmentations import augmentations_new
 
 
 class CityScapeGenerator(Dataset):
-    def __init__(self, root, split="train", augment_data=True):
+    def __init__(self, root, split="train", augment_data=True, augment_size=5000):
         self.root = root
         self.split = split
         self.augment_data = augment_data
+        self.augment_size = augment_size
         self.files = {}
         for split in ["train", "val"]:
             file_list = glob.glob(root + "/" + split + "/" + "image/**")
             self.files[split] = file_list
+        self.images = []
+        self.depths = []
+
+        if self.augment_data:
+            self.augmentation_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
+                                                                     augmentations_new.RandomHorizontalFlip(),
+                                                                     augmentations_new.AorB(augmentations_new.Scale(228),
+                                                                                            augmentations_new.AorB(augmentations_new.Compose([augmentations_new.RandomRotate(30), augmentations_new.CenterCrop((228, 304))]),
+                                                                                                                   augmentations_new.Compose([augmentations_new.RandomCenterCrop((228, 304)), augmentations_new.ScaleExact((228, 304))])), probA=0.25),
+                                                                     augmentations_new.ArrayToTensor()
+                                                                     ])
+        self.default_transform = augmentations_new.ArrayToTensor()
+
+        self.initialize_augmentations()
+
+    def initialize_augmentations(self):
+        all_files = self.files[self.split]
+        print(f'initialize_augmentations... running for {self.split}')
+        for id in range(len(all_files)):
+            img_path = all_files[id]
+            img_name = Path(img_path).stem
+            dpt_path = self.root + "/" + self.split + "/" + "depth/" + img_name + ".jpg"
+            img = transform.resize(np.asarray(Image.open(img_path)), (228, 304))
+            dpt = transform.resize(np.asarray(Image.open(dpt_path)), (228, 304))
+            timg, tdpt = self.default_transform(img, dpt)
+            self.images.append(timg / 255.)
+            self.depths.append(tdpt)
+
+        if self.augment_data:
+            img_indexes = list(range(len(all_files)))
+            for i in range(self.augment_size):
+                rand_idx = random.sample(img_indexes, 1)[0]
+                img_path = all_files[rand_idx]
+                img_name = Path(img_path).stem
+                dpt_path = self.root + "/" + self.split + "/" + "depth/" + img_name + ".jpg"
+                img = transform.resize(np.asarray(Image.open(img_path)), (480, 640))
+                dpt = transform.resize(np.asarray(Image.open(dpt_path)), (480, 640))
+                try:
+                    t_img, t_dep = self.augmentation_transform(img, dpt)
+                    self.images.append(t_img / 255.)
+                    self.depths.append(t_dep)
+                except:
+                    print('Exception occured while applying augmentation transform')
+                if i % 500 == 0:
+                    print(f'Generated {i} data augmentations')
 
     def __len__(self):
-        # return int(np.ceil(len(self.data) / self.batch_size))
-        return len(self.files[self.split])
+        return len(self.images)
 
     def __getitem__(self, id):
-        img_path = self.files[self.split][id]
-        img_name = os.path.split(self.files[self.split][0])[-1][:-4]
-        dpt_path = self.root + "/" + self.split + "/" + "depth/" + img_name + ".jpg"
-        img = np.asarray(Image.open(img_path))
-        dpt = np.asarray(Image.open(dpt_path))
-        img = transform.resize(img, (480, 640))
-        dpt = transform.resize(dpt, (480, 640))
-        if self.augment_data:
-            img_dep_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
-                                                           augmentations_new.RandomHorizontalFlip(),
-                                                           augmentations_new.RandomRotate(15),
-                                                           augmentations_new.AorB(augmentations_new.Scale(228), augmentations_new.RandomCrop((228, 304)), probA=0.8),
-                                                           augmentations_new.ArrayToTensor()
-                                                           ])
-        else:
-            img_dep_transform = augmentations_new.Compose([augmentations_new.Scale(228),
-                                                           augmentations_new.ArrayToTensor()])
-        img, dpt = img_dep_transform(img, dpt)
-
-        return img / 255., dpt
+        return self.images[id], self.depths[id]
 
 
 # class NyuDatasetLoader(Dataset):
@@ -183,9 +208,8 @@ def save_test_train_ids(file_path, train_percent=0.8, last_id=1448):
 
 
 def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=5000):
-    # return #DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=True),
-    return None, DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)), batch_size, shuffle=True), \
-           DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
+    return DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=True), DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)),
+                                                                                                                                                                           batch_size, shuffle=True), DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
 
 
 # def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=10000):
@@ -195,7 +219,7 @@ def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids,
 
 
 def get_cityscape_val_train_dataloader(dataset_path, batch_size=32):
-    return DataLoader(CityScapeGenerator(dataset_path, "train"), batch_size), \
-           DataLoader(CityScapeGenerator(dataset_path, "val"), batch_size)
+    return DataLoader(CityScapeGenerator(dataset_path, "train", augment_size=5000), batch_size), \
+           DataLoader(CityScapeGenerator(dataset_path, "val", augment_size=500), batch_size)
 
 # train_loader, val_loader = get_cityscape_val_train_dataloader("../datasets/cityscapes")
