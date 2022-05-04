@@ -126,7 +126,10 @@ def validate(epoch, val_loader, model, criterion, writer: SummaryWriter = None):
 
 def load_weights(model, weights_path):
     if Path(weights_path).is_file():
-        model.load_state_dict(torch.load(weights_path))
+        if torch.cuda.is_available():
+            model.load_state_dict(torch.load(weights_path))
+        else:
+            model.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu')))
         model.eval()
     else:
         print(f"Weights couldn't be loade at path {weights_path}")

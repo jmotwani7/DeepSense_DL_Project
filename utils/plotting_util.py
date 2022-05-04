@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-color_pallete = ['red', 'blue', 'green', 'yellow', 'black', 'purple']
+color_pallete = ['red', 'blue', 'green', 'purple', 'black', 'yellow']
 
 
 def plot_line_chart(X_axis_index: list, Y_axis_data, title, file_path, x_label='Epochs', y_label='Loss', legend_loc=1):
@@ -21,10 +21,10 @@ def plot_line_chart(X_axis_index: list, Y_axis_data, title, file_path, x_label='
     -------
 
     """
-    plt.figure(figsize=(16, 12))
+    plt.figure(figsize=(12, 10))
     legend_vals = []
-    for i, (legend, Y_axis_val) in enumerate(Y_axis_data):
-        plt.plot(X_axis_index, Y_axis_val, color_pallete[i])
+    for i, (legend, Y_axis_val, linestyle) in enumerate(Y_axis_data):
+        plt.plot(X_axis_index, Y_axis_val, color=color_pallete[i], linestyle=linestyle)
         legend_vals.append(legend)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -32,6 +32,7 @@ def plot_line_chart(X_axis_index: list, Y_axis_data, title, file_path, x_label='
     plt.grid(True, linestyle='--', fillstyle='left')
     plt.legend(legend_vals, loc=legend_loc)
     # plt.xlim((in_sd, in_ed))
+    plt.ylim((0, 1.2))
     plt.minorticks_on()
     plt.xticks()
     plt.savefig(f'{file_path}.png')
