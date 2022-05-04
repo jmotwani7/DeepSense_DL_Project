@@ -16,7 +16,7 @@ network:
   model: resnetv2
 
 data:
-  dataset: nyu # cityscape or nyu
+  dataset: cityscape # cityscape or nyu
   apply_augmentations: True
   imbalance: imbalance # regular or imbalance
   reweight: True

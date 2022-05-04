@@ -59,10 +59,10 @@ def main():
 
     print('Loading dataset for evaluation...')
     if args.dataset == 'cityscape':
-        train_loader, val_loader = get_cityscape_val_train_dataloader('datasets/cityscapes/data', batch_size=args.batch_size)
+        train_loader, val_loader = get_cityscape_val_train_dataloader('datasets/cityscapes/data', augment=False, batch_size=args.batch_size, shuffle=False)
     else:
         train_ids, val_ids, test_ids = load_test_train_ids('datasets/Nyu_v2/train_val_test_ids.json')
-        train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size, apply_augmentations=False)
+        train_loader, val_loader, test_loader = get_nyuv2_test_train_dataloaders('datasets/Nyu_v2/nyu_depth_v2_labeled.mat', train_ids, val_ids, test_ids, batch_size=args.batch_size, apply_augmentations=False, shuffle=False)
 
     start = time.time()
     print('Evaluation started...')

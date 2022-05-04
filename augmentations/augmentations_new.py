@@ -108,6 +108,11 @@ class ArrayToTensor(object):
         return tensor_img.float(), tensor_dep.float()
 
 
+class NormalizeData(object):
+    def __call__(self, img, depth):
+        return img / np.max(img), depth
+
+
 class AorB(object):
     def __init__(self, transform_A, transform_B, probA=0.5):
         self.transform_A = transform_A

@@ -31,9 +31,10 @@ class CityScapeGenerator(Dataset):
                                                                      augmentations_new.AorB(augmentations_new.Scale(228),
                                                                                             augmentations_new.AorB(augmentations_new.Compose([augmentations_new.RandomRotate(30), augmentations_new.CenterCrop((228, 304))]),
                                                                                                                    augmentations_new.Compose([augmentations_new.RandomCenterCrop((228, 304)), augmentations_new.ScaleExact((228, 304))])), probA=0.25),
+                                                                     augmentations_new.NormalizeData(),
                                                                      augmentations_new.ArrayToTensor()
                                                                      ])
-        self.default_transform = augmentations_new.ArrayToTensor()
+        self.default_transform = augmentations_new.Compose([augmentations_new.NormalizeData(), augmentations_new.ArrayToTensor()])
 
         self.initialize_augmentations()
 
@@ -47,7 +48,7 @@ class CityScapeGenerator(Dataset):
             img = transform.resize(np.asarray(Image.open(img_path)), (228, 304))
             dpt = transform.resize(np.asarray(Image.open(dpt_path)), (228, 304))
             timg, tdpt = self.default_transform(img, dpt)
-            self.images.append(timg / 255.)
+            self.images.append(timg)
             self.depths.append(tdpt)
 
         if self.augment_data:
@@ -61,7 +62,7 @@ class CityScapeGenerator(Dataset):
                 dpt = transform.resize(np.asarray(Image.open(dpt_path)), (480, 640))
                 try:
                     t_img, t_dep = self.augmentation_transform(img, dpt)
-                    self.images.append(t_img / 255.)
+                    self.images.append(t_img)
                     self.depths.append(t_dep)
                 except:
                     print('Exception occured while applying augmentation transform')
@@ -117,6 +118,7 @@ class NyuDatasetLoader(Dataset):
         self.imgs = []  # self.nyu['images']
         self.dpts = []  # self.nyu['depths']
         self.default_transform = augmentations_new.Compose([augmentations_new.Scale(228),
+                                                            augmentations_new.NormalizeData(),
                                                             augmentations_new.ArrayToTensor()])
         if self.augment_data:
             self.augmentation_transform = augmentations_new.Compose([augmentations_new.RandomVerticalFlip(),
@@ -124,6 +126,7 @@ class NyuDatasetLoader(Dataset):
                                                                      augmentations_new.AorB(augmentations_new.Scale(228),
                                                                                             augmentations_new.AorB(augmentations_new.Compose([augmentations_new.RandomRotate(30), augmentations_new.CenterCrop((228, 304))]),
                                                                                                                    augmentations_new.Compose([augmentations_new.RandomCenterCrop((228, 304)), augmentations_new.ScaleExact((228, 304))])), probA=0.25),
+                                                                     augmentations_new.NormalizeData(),
                                                                      augmentations_new.ArrayToTensor()
                                                                      ])
         self.initialize_augmentations(h5py.File(self.data_path))
@@ -134,7 +137,7 @@ class NyuDatasetLoader(Dataset):
             img = nyu_dataset['images'][idx].transpose(2, 1, 0)
             dep = nyu_dataset['depths'][idx].transpose(1, 0)
             t_img, t_dep = self.default_transform(img, dep)
-            self.imgs.append(t_img / 255.)
+            self.imgs.append(t_img)
             self.dpts.append(t_dep)
 
         if self.augment_data:
@@ -144,7 +147,7 @@ class NyuDatasetLoader(Dataset):
                 dep = nyu_dataset['depths'][rand_idx].transpose(1, 0)
                 try:
                     t_img, t_dep = self.augmentation_transform(img, dep)
-                    self.imgs.append(t_img / 255.)
+                    self.imgs.append(t_img)
                     self.dpts.append(t_dep)
                 except:
                     print('Exception occured while applying augmentation transform')
@@ -207,9 +210,10 @@ def save_test_train_ids(file_path, train_percent=0.8, last_id=1448):
         f.write(json.dumps(ids_dict))
 
 
-def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=5000):
-    return DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=True), DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)),
-                                                                                                                                                                           batch_size, shuffle=True), DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=True)
+def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=5000, shuffle=True):
+    return DataLoader(NyuDatasetLoader(dataset_path, train_ids, augment_data=apply_augmentations, augment_size=augmentations_count), batch_size, shuffle=shuffle), \
+           DataLoader(NyuDatasetLoader(dataset_path, val_ids, augment_data=apply_augmentations, augment_size=int(augmentations_count * 0.2)), batch_size, shuffle=shuffle), \
+           DataLoader(NyuDatasetLoader(dataset_path, test_ids), batch_size, shuffle=shuffle)
 
 
 # def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids, batch_size=3, apply_augmentations=True, augmentations_count=10000):
@@ -218,8 +222,8 @@ def get_nyuv2_test_train_dataloaders(dataset_path, train_ids, val_ids, test_ids,
 #            DataLoader(NyuDatasetLoaderLight(dataset_path, test_ids), batch_size, shuffle=True)
 
 
-def get_cityscape_val_train_dataloader(dataset_path, batch_size=32):
-    return DataLoader(CityScapeGenerator(dataset_path, "train", augment_size=5000), batch_size), \
-           DataLoader(CityScapeGenerator(dataset_path, "val", augment_size=500), batch_size)
+def get_cityscape_val_train_dataloader(dataset_path, batch_size=32, augment=True, shuffle=True):
+    return DataLoader(CityScapeGenerator(dataset_path, "train", augment_data=augment, augment_size=5000), batch_size, shuffle=shuffle), \
+           DataLoader(CityScapeGenerator(dataset_path, "val", augment_data=augment, augment_size=500), batch_size, shuffle=shuffle)
 
 # train_loader, val_loader = get_cityscape_val_train_dataloader("../datasets/cityscapes")
